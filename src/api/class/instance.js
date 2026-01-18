@@ -148,9 +148,11 @@ class WhatsAppInstance {
             }
 
             if (qr) {
+                logger.info(`QR Code received for instance ${this.key}`)
                 QRCode.toDataURL(qr).then((url) => {
                     this.instance.qr = url
                     this.instance.qrRetry++
+                    logger.info(`QR Code generated successfully for instance ${this.key}, retry count: ${this.instance.qrRetry}`)
                     if (this.instance.qrRetry >= config.instance.maxRetryQr) {
                         // close WebSocket connection
                         this.instance.sock.ws.close()
@@ -159,6 +161,8 @@ class WhatsAppInstance {
                         this.instance.qr = ' '
                         logger.info('socket connection terminated')
                     }
+                }).catch((error) => {
+                    logger.error(`Error generating QR Code: ${error.message}`)
                 })
             }
         })
