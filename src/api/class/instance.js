@@ -36,6 +36,7 @@ class WhatsAppInstance {
         qr: '',
         messages: [],
         qrRetry: 0,
+        reconnectAttempts: 0,
         customWebhook: '',
     }
 
@@ -97,12 +98,28 @@ class WhatsAppInstance {
             if (connection === 'connecting') return
 
             if (connection === 'close') {
-                // reconnect if not logged out
-                if (
-                    lastDisconnect?.error?.output?.statusCode !==
-                    DisconnectReason.loggedOut
-                ) {
+                const statusCode = lastDisconnect?.error?.output?.statusCode
+                const shouldReconnect = statusCode !== DisconnectReason.loggedOut
+                
+                logger.info(`Connection closed for instance ${this.key}, statusCode: ${statusCode}, shouldReconnect: ${shouldReconnect}`)
+                
+                // Limitar tentativas de reconexão para evitar loop infinito
+                if (!this.instance.reconnectAttempts) {
+                    this.instance.reconnectAttempts = 0
+                }
+                
+                // reconnect if not logged out and not exceeded max attempts
+                if (shouldReconnect && this.instance.reconnectAttempts < 3) {
+                    this.instance.reconnectAttempts++
+                    logger.info(`Reconnecting instance ${this.key}, attempt ${this.instance.reconnectAttempts}/3`)
+                    
+                    // Aguardar antes de reconectar
+                    await new Promise(resolve => setTimeout(resolve, 2000))
                     await this.init()
+                } else if (this.instance.reconnectAttempts >= 3) {
+                    logger.error(`Max reconnection attempts reached for instance ${this.key}, stopping`)
+                    this.instance.online = false
+                    this.instance.qr = ''
                 } else {
                     await this.collection.drop().then((r) => {
                         logger.info('STATE: Droped collection')
