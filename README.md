@@ -1,206 +1,205 @@
-# Archive Notice 🔒
-After three years, I've decided to archive this open-source WhatsApp API project. Your support and contributions have been incredible!
+# WhatsApp API - PostgreSQL Edition
 
-While I'm no longer actively maintaining this project, I've been working on something new and exciting. It's not open-source, but it's a powerful API that provides advanced features for those who need them. If you're interested in exploring this, feel free to reach out for more information.
+API WhatsApp construída com Baileys-MD e PostgreSQL para deploy no Render.com.
 
-Thank you once again for being a part of this journey. Keep building amazing things with technology!
+## 🚀 Características
 
-Best regards,
+- ✅ Envio e recebimento de mensagens WhatsApp
+- ✅ Suporte a múltiplas instâncias
+- ✅ Webhooks para eventos
+- ✅ Gerenciamento de grupos
+- ✅ Envio de mídia (imagens, vídeos, áudios, documentos)
+- ✅ **PostgreSQL** como banco de dados (compatível com Render.com)
+- ✅ Sequelize ORM
 
-@salman0ansari 
-- mailto:salman0ansariii@gmail.com
-- https://telegram.dog/salman0ansari
+## 📋 Pré-requisitos
 
+- Node.js v16 ou superior
+- PostgreSQL 12 ou superior
+- npm ou yarn
 
+## 🔧 Instalação
 
+1. Clone o repositório:
+```bash
+git clone https://github.com/melquifranco/api-whatsapp-ew.git
+cd api-whatsapp-ew
+```
 
+2. Instale as dependências:
+```bash
+npm install
+```
 
-<h1 align="center"> whatsapp-api-nodejs Multi Device</h1>
-<div align="center">
-<p>
-<a href="#"><img title="skynet" src="https://img.shields.io/badge/whatsapp api nodejs Multi Device-black?style=for-the-badge" alt=""></a>
-</p>
-<p>
-<a href="https://github.com/salman0ansari"><img title="Author" src="https://img.shields.io/badge/Author-Mohd Salman Ansari-black.svg?style=for-the-badge&logo=github" alt=""></a>
-</p>
-<a href="https://github.com/salman0ansari?tab=followers"><img title="Followers" src="https://img.shields.io/github/followers/salman0ansari?color=black&style=flat-square" alt=""></a>
-<a href="https://github.com/salman0ansari/whatsapp-api-nodejs/stargazers"><img title="Stars" src="https://img.shields.io/github/stars/salman0ansari/whatsapp-api-nodejs?color=black&style=flat-square" alt=""></a>
-<a href="https://github.com/salman0ansari/whatsapp-api-nodejs/network/members"><img title="Forks" src="https://img.shields.io/github/forks/salman0ansari/whatsapp-api-nodejs?color=black&style=flat-square" alt=""></a>
-<a href="https://github.com/salman0ansari/whatsapp-api-nodejs/issues"><img title="Issues" src="https://img.shields.io/github/issues/salman0ansari/whatsapp-api-nodejs?color=black&style=flat-square" alt=""></a>
-<p>
+3. Configure as variáveis de ambiente:
+```bash
+cp .env.example .env
+```
 
-<a href="http://github.com/salman0ansari/whatsapp-api-nodejs"><img title="Hits" src="http://hits.dwyl.com/salman0ansari/whatsapp-api-nodejs.svg?style=flat-square"></a>
-<br>
-<a href="https://t.me/salman0ansari">
-<img src="https://img.shields.io/badge/Telegram-informational?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram Badge"/>
-</a>
-<a href="https://join.skype.com/invite/rI5pLf9YIvTA">
-<img src="https://img.shields.io/badge/Skype-00AFF0.svg?style=for-the-badge&logo=Skype&logoColor=white" alt="Skype Badge"/>
-</a>
-<br>
+4. Edite o arquivo `.env` com suas configurações:
+```env
+# Segurança
+TOKEN=seu_token_secreto_aqui
+PROTECT_ROUTES=true
 
-</p>
-</div>
+# Aplicação
+PORT=3333
+RESTORE_SESSIONS_ON_START_UP=false
+APP_URL=https://seu-app.onrender.com
+
+# Banco de Dados PostgreSQL
+POSTGRES_ENABLED=true
+POSTGRES_HOST=seu-host-postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=whatsapp_api
+POSTGRES_USER=seu_usuario
+POSTGRES_PASSWORD=sua_senha
+
+# Webhook (opcional)
+WEBHOOK_ENABLED=false
+WEBHOOK_URL=https://seu-webhook.com
+```
+
+5. Inicie o servidor:
+```bash
+npm start
+```
+
+Para desenvolvimento:
+```bash
+npm run dev
+```
+
+## 🌐 Deploy no Render.com
+
+### 1. Criar Banco PostgreSQL
+
+1. Acesse [Render.com](https://render.com)
+2. Clique em **New +** → **PostgreSQL**
+3. Configure o banco e anote as credenciais
+
+### 2. Criar Web Service
+
+1. Clique em **New +** → **Web Service**
+2. Conecte seu repositório GitHub: `melquifranco/api-whatsapp-ew`
+3. Configure:
+   - **Name**: `api-whatsapp-ew`
+   - **Environment**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+
+### 3. Configurar Variáveis de Ambiente
+
+Adicione as seguintes variáveis no Render:
+
+```
+TOKEN=seu_token_secreto
+PROTECT_ROUTES=true
+POSTGRES_ENABLED=true
+POSTGRES_HOST=<host_do_render>
+POSTGRES_PORT=5432
+POSTGRES_DB=<nome_do_banco>
+POSTGRES_USER=<usuario>
+POSTGRES_PASSWORD=<senha>
+APP_URL=https://seu-app.onrender.com
+```
+
+### 4. Deploy
+
+Clique em **Create Web Service** e aguarde o deploy!
+
+## 📚 Documentação da API
+
+### Autenticação
+
+Todas as rotas (quando `PROTECT_ROUTES=true`) requerem o header:
+```
+Authorization: Bearer SEU_TOKEN
+```
+
+### Endpoints Principais
+
+#### Criar Instância
+```http
+POST /instance/init
+Content-Type: application/json
+
+{
+  "key": "minha-instancia"
+}
+```
+
+#### Obter QR Code
+```http
+GET /instance/qr?key=minha-instancia
+```
+
+#### Enviar Mensagem
+```http
+POST /message/text
+Content-Type: application/json
+
+{
+  "key": "minha-instancia",
+  "id": "5511999999999@s.whatsapp.net",
+  "message": "Olá, mundo!"
+}
+```
+
+#### Enviar Imagem
+```http
+POST /message/image
+Content-Type: application/json
+
+{
+  "key": "minha-instancia",
+  "id": "5511999999999@s.whatsapp.net",
+  "image": "https://exemplo.com/imagem.jpg",
+  "caption": "Legenda da imagem"
+}
+```
+
+Para documentação completa, importe a collection do Postman incluída no repositório: `whatsapp-api-nodejs.postman_collection.json`
+
+## 🔄 Migração de MongoDB para PostgreSQL
+
+Este projeto foi migrado de MongoDB para PostgreSQL. Para mais detalhes sobre as mudanças, veja [POSTGRES_MIGRATION.md](./POSTGRES_MIGRATION.md).
+
+### Principais Alterações:
+
+- **Mongoose** → **Sequelize**
+- **MongoDB** → **PostgreSQL**
+- Novo modelo de dados com suporte a JSON
+- Configuração simplificada via variáveis de ambiente
+
+## 🛠️ Tecnologias
+
+- [Baileys](https://github.com/WhiskeySockets/Baileys) - WhatsApp Web API
+- [Express](https://expressjs.com/) - Framework web
+- [Sequelize](https://sequelize.org/) - ORM para PostgreSQL
+- [PostgreSQL](https://www.postgresql.org/) - Banco de dados relacional
+- [Pino](https://getpino.io/) - Logger
+
+## 📝 Licença
+
+MIT
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e pull requests.
+
+## ⚠️ Aviso Legal
+
+Este projeto é apenas para fins educacionais. O uso do WhatsApp de forma automatizada pode violar os Termos de Serviço do WhatsApp. Use por sua conta e risco.
+
+## 📧 Suporte
+
+Para questões e suporte, abra uma issue no GitHub.
+
+## 🙏 Créditos
+
+Este projeto é baseado no [whatsapp-api-nodejs](https://github.com/salman0ansari/whatsapp-api-nodejs) de [@salman0ansari](https://github.com/salman0ansari).
 
 ---
 
-An implementation of [Baileys](https://github.com/WhiskeySockets/Baileys) as a simple RESTful API service with multi device support just `download`, `install`, and `start` using, `simple` as that.
-
-# Libraries Used
-
--   [Baileys](https://github.com/WhiskeySockets/Baileys)
--   [Express](https://github.com/expressjs/express)
-
-# Installation
-
-1. Download or clone this repo.
-2. Enter to the project directory.
-3. Execute `yarn install` to install the dependencies.
-4. Copy `.env.example` to `.env` and set the environment variables.
-
-# Docker Compose
-
-1. Follow the [Installation](#installation) procedure.
-2. Update `.env` and set
-
-```
-MONGODB_ENABLED=true
-MONGODB_URL=mongodb://mongodb:27017/whatsapp_api
-```
-
-3. Set your `TOKEN=` to a random string.
-4. Execute
-
-```
-docker-compose up -d
-```
-
-# Configuration
-
-Edit environment variables on `.env`
-
-```a
-Important: You must set TOKEN= to a random string to protect the route.
-```
-
-```env
-# ==================================
-# SECURITY CONFIGURATION
-# ==================================
-TOKEN=RANDOM_STRING_HERE
-```
-
-# Usage
-
-1. `DEVELOPMENT:` Execute `yarn dev`
-2. `PRODUCTION:` Execute `yarn start`
-
-## Generate basic instance using random key.
-
-To generate an Instance Key  
-Using the route:
-
-```bash
-curl --location --request GET 'localhost:3333/instance/init' \
---data-raw ''
-```
-
-Response:
-
-```json
-{
-    "error": false,
-    "message": "Initializing successfull",
-    "key": "d7e2abff-3ac8-44a9-a738-1b28e0fca8a5"
-}
-```
-
-## WEBHOOK_ALLOWED_EVENTS
-
-You can set which events you want to send to webhook by setting the environment variable `WEBHOOK_ALLOWED_EVENTS`
-
-Set a comma seperated list of events you want to get notified about.
-
-Default value is `all` which will forward all events.
-
-Allowed values:
-
--   `connection` - receive all connection events
--   `connection:open` - receive open connection events
--   `connection:close` - receive close connection events
--   `presense` - receive presence events
--   `messages` - receive all messages event
--   `call` - receive all events related to calls
--   `call:terminate` - receive call terminate events
--   `call:offer` - receive call terminate event
--   `groups` - receive all events related to groups
--   `group_participants` - receive all events related to group participants
-
-You can also use the Baileys event format example: `messages.upsert`
-
-## Generate custom instance with custom key and custom webhook.
-
-To generate a Custom Instance  
-Using the route:
-
-```bash
-curl --location --request GET 'localhost:3333/instance/init?key=CUSTOM_INSTANCE_KEY_HERE&webhook=true&webhookUrl=https://webhook.site/d7114704-97f6-4562-9a47-dcf66b07266d' \
---data-raw ''
-```
-
-Response:
-
-```json
-{
-    "error": false,
-    "message": "Initializing successfull",
-    "key": "CUSTOM_INSTANCE_KEY_HERE"
-}
-```
-
-# Using Key
-
-Save the value of the `key` from response. Then use this value to call all the routes.
-
-## Postman Docs
-
-All routes are available as a postman collection.
-
--   https://documenter.getpostman.com/view/12514774/UVsPQkBq
-
-## QR Code
-
-Visit [http://localhost:3333/instance/qr?key=INSTANCE_KEY_HERE](http://localhost:3333/instance/qr?key=INSTANCE_KEY_HERE) to view the QR Code and scan with your device. If you take too long to scan the QR Code, you will have to refresh the page.
-
-## Send Message
-
-```sh
-# /message/text?key=INSTANCE_KEY_HERE&id=PHONE-NUMBER-WITH-COUNTRY-CODE&message=MESSAGE
-
-curl --location --request POST 'localhost:3333/message/text?key=INSTANCE_KEY_HERE' \
---header 'Content-Type: application/x-www-form-urlencoded' \
---data-urlencode 'id=919999999999' \
---data-urlencode 'message=Hello World'
-```
-
-## Routes
-
-| Route                | Source File                                                                                                          |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Instance Routes      | [instance.route.js](https://github.com/salman0ansari/whatsapp-api-nodejs/blob/main/src/api/routes/instance.route.js) |
-| Message Routes       | [message.route.js](https://github.com/salman0ansari/whatsapp-api-nodejs/blob/main/src/api/routes/message.route.js)   |
-| Group Routes         | [group.route.js](https://github.com/salman0ansari/whatsapp-api-nodejs/blob/main/src/api/routes/group.route.js)       |
-| Miscellaneous Routes | [misc.route.js](https://github.com/salman0ansari/whatsapp-api-nodejs/blob/main/src/api/routes/misc.route.js)         |
-
-See all routes here [src/api/routes](https://github.com/salman0ansari/whatsapp-api-nodejs/tree/main/src/api/routes)
-
-# Note
-
-I can't guarantee or can be held responsible if you get blocked or banned by using this software. WhatsApp does not allow bots using unofficial methods on their platform, so this shouldn't be considered totally safe.
-
-# Legal
-
--   This code is in no way affiliated, authorized, maintained, sponsored or endorsed by WA (WhatsApp) or any of its affiliates or subsidiaries.
--   The official WhatsApp website can be found at https://whatsapp.com. "WhatsApp" as well as related names, marks, emblems and images are registered trademarks of their respective owners.
--   This is an independent and unofficial software Use at your own risk.
--   Do not spam people with this.
+**Desenvolvido com ❤️ para a comunidade**
