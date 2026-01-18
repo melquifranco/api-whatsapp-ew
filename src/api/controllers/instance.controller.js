@@ -1,6 +1,7 @@
 const { WhatsAppInstance } = require('../class/instance')
 const fs = require('fs')
 const path = require('path')
+const os = require('os')
 const config = require('../../config/config')
 const { Session } = require('../class/session')
 
@@ -117,7 +118,8 @@ exports.list = async (req, res) => {
     if (req.query.active) {
         let instance = []
         try {
-            const authSessionsDir = path.join(process.cwd(), 'auth_sessions')
+            // Usa o mesmo caminho do postgresAuthState
+            const authSessionsDir = process.env.AUTH_DIR || path.join(os.tmpdir(), 'whatsapp_auth')
             if (fs.existsSync(authSessionsDir)) {
                 const sessionDirs = fs.readdirSync(authSessionsDir, { withFileTypes: true })
                     .filter(dirent => dirent.isDirectory())

@@ -4,12 +4,14 @@ const logger = require('pino')()
 const config = require('../../config/config')
 const fs = require('fs')
 const path = require('path')
+const os = require('os')
 
 class Session {
     async restoreSessions() {
         let restoredSessions = new Array()
         try {
-            const authSessionsDir = path.join(process.cwd(), 'auth_sessions')
+            // Usa o mesmo caminho do postgresAuthState
+            const authSessionsDir = process.env.AUTH_DIR || path.join(os.tmpdir(), 'whatsapp_auth')
             
             // Verifica se o diretório existe
             if (!fs.existsSync(authSessionsDir)) {
