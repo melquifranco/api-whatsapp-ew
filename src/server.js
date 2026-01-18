@@ -1,26 +1,26 @@
 const dotenv = require('dotenv')
-const mongoose = require('mongoose')
 const logger = require('pino')()
 dotenv.config()
 
 const app = require('./config/express')
 const config = require('./config/config')
+const { sequelize, postgresEnabled } = require('./config/database')
 
 const { Session } = require('./api/class/session')
-const connectToCluster = require('./api/helper/connectMongoClient')
 
 let server
 
-if (config.mongoose.enabled) {
-    mongoose.set('strictQuery', true);
-    mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
-        logger.info('Connected to MongoDB')
+if (postgresEnabled) {
+    sequelize.authenticate().then(() => {
+        logger.info('Connected to PostgreSQL')
+        return sequelize.sync()
+    }).catch((error) => {
+        logger.error('Failed to connect to PostgreSQL:', error)
     })
 }
 
 server = app.listen(config.port, async () => {
     logger.info(`Listening on port ${config.port}`)
-    global.mongoClient = await connectToCluster(config.mongoose.url)
     if (config.restoreSessionsOnStartup) {
         logger.info(`Restoring Sessions`)
         const session = new Session()

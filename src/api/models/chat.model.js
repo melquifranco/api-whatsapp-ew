@@ -1,16 +1,33 @@
-const mongoose = require('mongoose')
+const { DataTypes } = require('sequelize')
+const { sequelize } = require('../../config/database')
 
-const chatSchema = new mongoose.Schema({
+const Chat = sequelize.define('Chat', {
+    id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true,
+    },
     key: {
-        type: String,
-        required: [true, 'key is missing'],
+        type: DataTypes.STRING,
+        allowNull: false,
         unique: true,
     },
     chat: {
-        type: Array,
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: [],
     },
+    createdAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+    },
+    updatedAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+    },
+}, {
+    tableName: 'chats',
+    timestamps: true,
 })
-
-const Chat = mongoose.model('Chat', chatSchema)
 
 module.exports = Chat

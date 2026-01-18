@@ -1,7 +1,7 @@
 {
-    "name": "whatsapp-api-nodejs",
+    "name": "api-whatsapp-ew",
     "version": "3.0.8",
-    "description": "whatsapp-api-nodejs is builton top of Baileys-MD.",
+    "description": "WhatsApp API built on top of Baileys-MD with PostgreSQL support.",
     "main": "server.js",
     "scripts": {
         "start": "node src/server.js",
@@ -28,8 +28,8 @@
             "git add"
         ]
     },
-    "repository": "git@github.com:salman0ansari/whatsapp-api-nodejs.git",
-    "author": "Mohd Salman Ansari <salman0ansariii@gmail.com>",
+    "repository": "git@github.com:melquifranco/api-whatsapp-ew.git",
+    "author": "Melqui Franco",
     "license": "MIT",
     "dependencies": {
         "@whiskeysockets/baileys": "^6.1.0",
@@ -40,8 +40,9 @@
         "express": "^4.18.2",
         "express-exception-handler": "^1.3.23",
         "link-preview-js": "^3.0.0",
-        "mongodb": "^4.12.1",
-        "mongoose": "^6.7.4",
+        "sequelize": "^6.35.2",
+        "pg": "^8.11.3",
+        "pg-hstore": "^2.3.4",
         "multer": "^1.4.5-lts.1",
         "pino": "^8.7.0",
         "qrcode": "^1.5.1",
@@ -56,6 +57,7 @@
         "mocha": "^10.1.0",
         "nodemon": "^2.0.20",
         "prettier": "^2.8.0",
-        "supertest": "^6.3.1"
+        "supertest": "^6.3.1",
+        "sequelize-cli": "^6.6.2"
     }
 }

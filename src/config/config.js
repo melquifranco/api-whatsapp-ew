@@ -20,13 +20,16 @@ const CLIENT_PLATFORM = process.env.CLIENT_PLATFORM || 'Whatsapp MD'
 const CLIENT_BROWSER = process.env.CLIENT_BROWSER || 'Chrome'
 const CLIENT_VERSION = process.env.CLIENT_VERSION || '4.0.0'
 
-// Enable or disable mongodb
-const MONGODB_ENABLED = !!(
-    process.env.MONGODB_ENABLED && process.env.MONGODB_ENABLED === 'true'
+// Enable or disable PostgreSQL
+const POSTGRES_ENABLED = !!(
+    process.env.POSTGRES_ENABLED && process.env.POSTGRES_ENABLED === 'true'
 )
-// URL of the Mongo DB
-const MONGODB_URL =
-    process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017/WhatsAppInstance'
+// PostgreSQL Configuration
+const POSTGRES_HOST = process.env.POSTGRES_HOST || 'localhost'
+const POSTGRES_PORT = process.env.POSTGRES_PORT || 5432
+const POSTGRES_DB = process.env.POSTGRES_DB || 'whatsapp_api'
+const POSTGRES_USER = process.env.POSTGRES_USER || 'postgres'
+const POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || 'postgres'
 // Enable or disable webhook globally on project
 const WEBHOOK_ENABLED = !!(
     process.env.WEBHOOK_ENABLED && process.env.WEBHOOK_ENABLED === 'true'
@@ -55,14 +58,13 @@ module.exports = {
     instance: {
         maxRetryQr: INSTANCE_MAX_RETRY_QR,
     },
-    mongoose: {
-        enabled: MONGODB_ENABLED,
-        url: MONGODB_URL,
-        options: {
-            // useCreateIndex: true,
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        },
+    postgres: {
+        enabled: POSTGRES_ENABLED,
+        host: POSTGRES_HOST,
+        port: POSTGRES_PORT,
+        database: POSTGRES_DB,
+        user: POSTGRES_USER,
+        password: POSTGRES_PASSWORD,
     },
     browser: {
         platform: CLIENT_PLATFORM,
@@ -74,5 +76,6 @@ module.exports = {
     webhookBase64: WEBHOOK_BASE64,
     protectRoutes: PROTECT_ROUTES,
     markMessagesRead: MARK_MESSAGES_READ,
-    webhookAllowedEvents: WEBHOOK_ALLOWED_EVENTS
+    webhookAllowedEvents: WEBHOOK_ALLOWED_EVENTS,
+    postgresEnabled: POSTGRES_ENABLED,
 }
