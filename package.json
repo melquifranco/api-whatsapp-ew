@@ -31,6 +31,10 @@
     "repository": "git@github.com:melquifranco/api-whatsapp-ew.git",
     "author": "Melqui Franco",
     "license": "MIT",
+    "engines": {
+        "node": ">=20.0.0",
+        "npm": ">=9.0.0"
+    },
     "dependencies": {
         "@whiskeysockets/baileys": "^6.7.8",
         "@adiwajshing/keyed-db": "^0.2.4",
