@@ -116,11 +116,17 @@ exports.delete = async (req, res) => {
 exports.list = async (req, res) => {
     if (req.query.active) {
         let instance = []
-        const db = mongoClient.db('whatsapp-api')
-        const result = await db.listCollections().toArray()
-        result.forEach((collection) => {
-            instance.push(collection.name)
-        })
+        try {
+            const authSessionsDir = path.join(process.cwd(), 'auth_sessions')
+            if (fs.existsSync(authSessionsDir)) {
+                const sessionDirs = fs.readdirSync(authSessionsDir, { withFileTypes: true })
+                    .filter(dirent => dirent.isDirectory())
+                    .map(dirent => dirent.name)
+                instance = sessionDirs
+            }
+        } catch (error) {
+            console.error('Error listing sessions:', error)
+        }
 
         return res.json({
             error: false,

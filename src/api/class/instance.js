@@ -15,7 +15,7 @@ const axios = require('axios')
 const config = require('../../config/config')
 const downloadMessage = require('../helper/downloadMsg')
 const logger = require('pino')()
-const useMongoDBAuthState = require('../helper/mongoAuthState')
+const usePostgresAuthState = require('../helper/postgresAuthState')
 
 class WhatsAppInstance {
     socketConfig = {
@@ -70,8 +70,7 @@ class WhatsAppInstance {
     }
 
     async init() {
-        this.collection = mongoClient.db('whatsapp-api').collection(this.key)
-        const { state, saveCreds } = await useMongoDBAuthState(this.collection)
+        const { state, saveCreds } = await usePostgresAuthState(this.key)
         this.authState = { state: state, saveCreds: saveCreds }
         this.socketConfig.auth = this.authState.state
         this.socketConfig.browser = Object.values(config.browser)

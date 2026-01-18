@@ -2,40 +2,50 @@
 const { WhatsAppInstance } = require('../class/instance')
 const logger = require('pino')()
 const config = require('../../config/config')
+const fs = require('fs')
+const path = require('path')
 
 class Session {
     async restoreSessions() {
         let restoredSessions = new Array()
-        let allCollections = []
         try {
-            const db = mongoClient.db('whatsapp-api')
-            const result = await db.listCollections().toArray()
-            result.forEach((collection) => {
-                allCollections.push(collection.name)
-            })
+            const authSessionsDir = path.join(process.cwd(), 'auth_sessions')
+            
+            // Verifica se o diretório existe
+            if (!fs.existsSync(authSessionsDir)) {
+                logger.info('No auth_sessions directory found, skipping session restoration')
+                return restoredSessions
+            }
 
-            allCollections.map((key) => {
-                const query = {}
-                db.collection(key)
-                    .find(query)
-                    .toArray(async (err, result) => {
-                        if (err) throw err
-                        const webhook = !config.webhookEnabled
-                            ? undefined
-                            : config.webhookEnabled
-                        const webhookUrl = !config.webhookUrl
-                            ? undefined
-                            : config.webhookUrl
-                        const instance = new WhatsAppInstance(
-                            key,
-                            webhook,
-                            webhookUrl
-                        )
-                        await instance.init()
-                        WhatsAppInstances[key] = instance
-                    })
-                restoredSessions.push(key)
-            })
+            // Lista todos os diretórios (cada um representa uma sessão)
+            const sessionDirs = fs.readdirSync(authSessionsDir, { withFileTypes: true })
+                .filter(dirent => dirent.isDirectory())
+                .map(dirent => dirent.name)
+
+            logger.info(`Found ${sessionDirs.length} session(s) to restore`)
+
+            for (const key of sessionDirs) {
+                try {
+                    const webhook = !config.webhookEnabled
+                        ? undefined
+                        : config.webhookEnabled
+                    const webhookUrl = !config.webhookUrl
+                        ? undefined
+                        : config.webhookUrl
+                    
+                    const instance = new WhatsAppInstance(
+                        key,
+                        webhook,
+                        webhookUrl
+                    )
+                    await instance.init()
+                    WhatsAppInstances[key] = instance
+                    restoredSessions.push(key)
+                    logger.info(`Session ${key} restored successfully`)
+                } catch (error) {
+                    logger.error(`Error restoring session ${key}:`, error)
+                }
+            }
         } catch (e) {
             logger.error('Error restoring sessions')
             logger.error(e)

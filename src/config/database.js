@@ -12,22 +12,20 @@ const POSTGRES_DB = process.env.POSTGRES_DB || 'whatsapp_api'
 const POSTGRES_USER = process.env.POSTGRES_USER || 'postgres'
 const POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || 'postgres'
 
-let sequelize = null
-
-if (POSTGRES_ENABLED) {
-    sequelize = new Sequelize(POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, {
-        host: POSTGRES_HOST,
-        port: POSTGRES_PORT,
-        dialect: 'postgres',
-        logging: false,
-        pool: {
-            max: 5,
-            min: 0,
-            acquire: 30000,
-            idle: 10000,
-        },
-    })
-}
+// Sempre inicializa o Sequelize, mesmo se POSTGRES_ENABLED for false
+// Isso evita erros de "Cannot read properties of null"
+const sequelize = new Sequelize(POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, {
+    host: POSTGRES_HOST,
+    port: POSTGRES_PORT,
+    dialect: 'postgres',
+    logging: false,
+    pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000,
+    },
+})
 
 module.exports = {
     sequelize,
