@@ -118,6 +118,23 @@ class WhatsAppInstance {
                     await this.init()
                 } else if (this.instance.reconnectAttempts >= 3) {
                     logger.error(`Max reconnection attempts reached for instance ${this.key}, stopping`)
+                    logger.info(`Cleaning corrupted auth files for instance ${this.key}`)
+                    
+                    // Limpar arquivos de autenticação corrompidos
+                    try {
+                        const fs = require('fs')
+                        const os = require('os')
+                        const baseDir = process.env.AUTH_DIR || path.join(os.tmpdir(), 'whatsapp_auth')
+                        const authDir = path.join(baseDir, this.key)
+                        
+                        if (fs.existsSync(authDir)) {
+                            fs.rmSync(authDir, { recursive: true, force: true })
+                            logger.info(`Corrupted auth directory deleted for instance ${this.key}`)
+                        }
+                    } catch (e) {
+                        logger.error(`Error deleting corrupted auth directory: ${e.message}`)
+                    }
+                    
                     this.instance.online = false
                     this.instance.qr = ''
                 } else {

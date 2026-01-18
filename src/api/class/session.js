@@ -9,6 +9,15 @@ const os = require('os')
 class Session {
     async restoreSessions() {
         let restoredSessions = new Array()
+        
+        // DESABILITADO: Restauração automática pode causar problemas com credenciais corrompidas
+        // Usuários devem criar novas instâncias manualmente via /instance/init
+        logger.info('Automatic session restoration is disabled to prevent corrupted credentials issues')
+        logger.info('Create new instances manually via /instance/init endpoint')
+        
+        return restoredSessions
+        
+        /* CÓDIGO ORIGINAL COMENTADO - Pode ser reativado se necessário
         try {
             // Usa o mesmo caminho do postgresAuthState
             const authSessionsDir = process.env.AUTH_DIR || path.join(os.tmpdir(), 'whatsapp_auth')
@@ -53,6 +62,7 @@ class Session {
             logger.error(e)
         }
         return restoredSessions
+        */
     }
 }
 
