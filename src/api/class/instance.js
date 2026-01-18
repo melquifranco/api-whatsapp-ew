@@ -20,7 +20,7 @@ const usePostgresAuthState = require('../helper/postgresAuthState')
 class WhatsAppInstance {
     socketConfig = {
         defaultQueryTimeoutMs: undefined,
-        printQRInTerminal: false,
+        printQRInTerminal: true,
         logger: pino({
             level: config.log.level,
         }),
@@ -87,6 +87,12 @@ class WhatsAppInstance {
         // on socket closed, opened, connecting
         sock?.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect, qr } = update
+            
+            logger.info(`[${this.key}] connection.update event:`, {
+                connection,
+                hasQr: !!qr,
+                hasLastDisconnect: !!lastDisconnect
+            })
 
             if (connection === 'connecting') return
 
@@ -148,11 +154,15 @@ class WhatsAppInstance {
             }
 
             if (qr) {
-                logger.info(`QR Code received for instance ${this.key}`)
+                logger.info(`QR Code received for instance ${this.key}, length: ${qr.length}`)
+                logger.info(`QR Code raw data (first 50 chars): ${qr.substring(0, 50)}...`)
+                
                 QRCode.toDataURL(qr).then((url) => {
                     this.instance.qr = url
                     this.instance.qrRetry++
-                    logger.info(`QR Code generated successfully for instance ${this.key}, retry count: ${this.instance.qrRetry}`)
+                    logger.info(`QR Code converted to Base64 successfully for instance ${this.key}`)
+                    logger.info(`Base64 length: ${url.length}, retry count: ${this.instance.qrRetry}`)
+                    
                     if (this.instance.qrRetry >= config.instance.maxRetryQr) {
                         // close WebSocket connection
                         this.instance.sock.ws.close()
@@ -163,7 +173,10 @@ class WhatsAppInstance {
                     }
                 }).catch((error) => {
                     logger.error(`Error generating QR Code: ${error.message}`)
+                    logger.error(`Error stack: ${error.stack}`)
                 })
+            } else {
+                logger.info(`connection.update event fired but no QR code present. Connection: ${connection}`)
             }
         })
 
