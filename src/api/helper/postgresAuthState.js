@@ -17,6 +17,15 @@ async function usePostgresAuthState(key) {
         // Cria o diretório se não existir
         if (!fs.existsSync(authDir)) {
             fs.mkdirSync(authDir, { recursive: true, mode: 0o755 })
+            console.log(`Created new auth directory for instance ${key}`)
+        } else {
+            console.log(`Using existing auth directory for instance ${key}`)
+            
+            // Verificar se existem arquivos corrompidos
+            const files = fs.readdirSync(authDir)
+            if (files.length > 0) {
+                console.log(`Found ${files.length} auth files for instance ${key}`)
+            }
         }
     } catch (error) {
         console.error(`Error creating auth directory: ${error.message}`)

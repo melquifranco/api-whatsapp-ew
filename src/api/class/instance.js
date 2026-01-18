@@ -433,9 +433,36 @@ class WhatsAppInstance {
 
     async deleteInstance(key) {
         try {
+            // Limpar do banco de dados
             await Chat.findOneAndDelete({ key: key })
         } catch (e) {
-            logger.error('Error updating document failed')
+            logger.error('Error deleting from database:', e.message)
+        }
+        
+        try {
+            // Limpar arquivos de autenticação
+            const fs = require('fs')
+            const os = require('os')
+            const baseDir = process.env.AUTH_DIR || path.join(os.tmpdir(), 'whatsapp_auth')
+            const authDir = path.join(baseDir, key)
+            
+            if (fs.existsSync(authDir)) {
+                fs.rmSync(authDir, { recursive: true, force: true })
+                logger.info(`Auth directory deleted for instance ${key}`)
+            }
+        } catch (e) {
+            logger.error('Error deleting auth directory:', e.message)
+        }
+        
+        try {
+            // Fechar socket se existir
+            if (this.instance?.sock) {
+                this.instance.sock.ev.removeAllListeners()
+                this.instance.sock.ws.close()
+                logger.info(`Socket closed for instance ${key}`)
+            }
+        } catch (e) {
+            logger.error('Error closing socket:', e.message)
         }
     }
 
