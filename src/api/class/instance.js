@@ -161,7 +161,7 @@ class WhatsAppInstance {
                         this.key
                     )
             } else if (connection === 'open') {
-                if (config.mongoose.enabled) {
+                if (config.mongoose && config.mongoose.enabled) {
                     let alreadyThere = await Chat.findOne({
                         key: this.key,
                     }).exec()
