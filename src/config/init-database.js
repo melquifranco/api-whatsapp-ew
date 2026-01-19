@@ -20,7 +20,16 @@ async function initDatabase() {
         logger.info('Connected to PostgreSQL successfully')
 
         // Sincroniza os modelos (cria tabelas se não existirem)
-        await sequelize.sync({ alter: false })
+        // Usar force: true apenas se DATABASE_RESET=true estiver definido
+        const forceSync = process.env.DATABASE_RESET === 'true'
+        
+        if (forceSync) {
+            logger.warn('⚠️  DATABASE_RESET=true - Recreating all tables!')
+            await sequelize.sync({ force: true })
+        } else {
+            await sequelize.sync({ alter: true })
+        }
+        
         logger.info('Database tables synchronized successfully')
 
         // Verifica se as tabelas foram criadas
