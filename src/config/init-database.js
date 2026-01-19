@@ -15,9 +15,10 @@ async function initDatabase() {
     }
 
     try {
-        // Testa a conexão
+        // Testa a conexão com retry
+        logger.info('Attempting to connect to PostgreSQL...')
         await sequelize.authenticate()
-        logger.info('Connected to PostgreSQL successfully')
+        logger.info('✅ Connected to PostgreSQL successfully')
 
         // Sincroniza os modelos (cria tabelas se não existirem)
         // Usar force: true apenas se DATABASE_RESET=true estiver definido
@@ -41,8 +42,13 @@ async function initDatabase() {
         logger.info(`Found ${tables.length} tables in database:`, tables.map(t => t.table_name))
 
     } catch (error) {
-        logger.error('Failed to initialize database:', error)
-        throw error
+        logger.error('❌ Failed to initialize database:', {
+            message: error.message,
+            code: error.code,
+            name: error.name,
+        })
+        // Não lança o erro para não crashar o servidor
+        // throw error
     }
 }
 

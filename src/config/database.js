@@ -40,12 +40,20 @@ const sequelize = new Sequelize(POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, {
             require: true,
             rejectUnauthorized: false, // Render uses self-signed certificates
         },
+        // Prevent connection timeout
+        keepAlive: true,
+        statement_timeout: 30000,
+        idle_in_transaction_session_timeout: 30000,
     },
     pool: {
-        max: 5,
+        max: 3,
         min: 0,
-        acquire: 30000,
+        acquire: 60000,
         idle: 10000,
+        evict: 10000,
+    },
+    retry: {
+        max: 3,
     },
 })
 
