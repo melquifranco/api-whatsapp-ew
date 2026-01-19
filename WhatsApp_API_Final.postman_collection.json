@@ -1,0 +1,733 @@
+{
+	"info": {
+		"_postman_id": "whatsapp-api-final-2026",
+		"name": "WhatsApp API - Render.com (Final)",
+		"description": "Collection completa e atualizada para API WhatsApp no Render.com\n\n## ⚠️ IMPORTANTE - Problema da instance_key\n\nQuando você cria uma instância SEM passar o parâmetro `key`, o sistema gera um UUID automático.\nPorém, após escanear o QR Code e reconectar, uma NOVA instance_key pode ser gerada.\n\n### Solução:\n**SEMPRE passe o parâmetro `key` ao criar instância:**\n```\nGET /instance/init?key=minha-instancia&webhook=false\n```\n\nAssim a chave permanece fixa: `minha-instancia`\n\n## 📋 Fluxo de uso:\n\n1. **Criar Instância** → Passe `key` customizada!\n2. **Ver QR Code** → Abra no navegador\n3. **Escanear com WhatsApp** → No celular\n4. **Aguardar conexão** → ~10 segundos\n5. **Listar Instâncias** → Verificar se apareceu\n6. **Enviar Mensagem** → Testar!\n\n## 🔑 Configuração:\n\n1. Importe o **Environment** `WhatsApp_API_Environment.postman_environment.json`\n2. Edite as variáveis:\n   - `api_token`: Cole o TOKEN do Render\n   - `instance_key`: Nome da sua instância (ex: `meu-whatsapp`)\n   - `phone_number`: Número com código do país (ex: `5511999999999@s.whatsapp.net`)\n3. Selecione o environment antes de usar\n\n## 📱 Formato de números:\n\n- **Contatos:** `CÓDIGO_PAÍS + DDD + NÚMERO@s.whatsapp.net`\n  - Exemplo: `5511999999999@s.whatsapp.net`\n- **Grupos:** `ID_DO_GRUPO@g.us`\n  - Exemplo: `120363XXXXXXXXXX@g.us`\n\n---\n**Repositório:** https://github.com/melquifranco/api-whatsapp-ew",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{api_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Instance",
+			"item": [
+				{
+					"name": "1. Criar Instância (com chave customizada) ⭐",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/init?key={{instance_key}}&webhook=false",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "init"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}",
+									"description": "Chave customizada da instância (OBRIGATÓRIO para evitar mudança de key)"
+								},
+								{
+									"key": "webhook",
+									"value": "false",
+									"description": "Habilitar webhook"
+								}
+							]
+						},
+						"description": "⚠️ **SEMPRE use este endpoint com parâmetro `key`!**\n\nCria uma nova instância com chave customizada.\nSem o parâmetro `key`, um UUID aleatório é gerado e pode mudar após reconexão."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Criar Instância (chave aleatória) ⚠️",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/init?webhook=false",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "init"],
+							"query": [
+								{
+									"key": "webhook",
+									"value": "false"
+								}
+							]
+						},
+						"description": "⚠️ **NÃO RECOMENDADO!**\n\nCria instância com UUID aleatório.\nA chave pode mudar após escanear QR Code.\n\n**Use o endpoint anterior com `key` customizada!**"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Ver QR Code (página HTML)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/qr?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "qr"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Abre página HTML com QR Code.\nAtualiza automaticamente a cada 3 segundos até o código aparecer.\n\n**Abra no navegador para escanear com WhatsApp!**"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Obter QR Code Base64",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/qrbase64?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "qrbase64"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Retorna QR Code em Base64.\nÚtil para integração com sistemas."
+					},
+					"response": []
+				},
+				{
+					"name": "5. Obter Info da Instância",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/info?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "info"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Retorna informações da instância:\n- Status de conexão\n- Dados do usuário conectado\n- Webhook configurado"
+					},
+					"response": []
+				},
+				{
+					"name": "6. Listar Todas as Instâncias",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/list",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "list"]
+						},
+						"description": "Lista todas as instâncias ativas no servidor.\n\n⚠️ **Atenção:** Se retornar vazio, pode ser que:\n1. Nenhuma instância foi criada\n2. Servidor reiniciou (instâncias não persistem)\n3. Instância crashou ao conectar"
+					},
+					"response": []
+				},
+				{
+					"name": "7. Deletar Instância",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/delete?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "delete"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Deleta completamente a instância:\n- Fecha conexão WebSocket\n- Remove arquivos de autenticação\n- Limpa do banco de dados\n- Remove do objeto global"
+					},
+					"response": []
+				},
+				{
+					"name": "8. Logout da Instância",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/logout?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "logout"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Faz logout do WhatsApp.\nO dispositivo será desconectado no celular também."
+					},
+					"response": []
+				}
+			],
+			"description": "Gerenciamento de instâncias WhatsApp"
+		},
+		{
+			"name": "Messages",
+			"item": [
+				{
+					"name": "1. Enviar Mensagem de Texto",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"message\": \"Olá! Esta é uma mensagem de teste da API WhatsApp! 🚀\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/text?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "text"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia mensagem de texto.\n\n**Formato do número:**\n`CÓDIGO_PAÍS + DDD + NÚMERO@s.whatsapp.net`\n\nExemplo: `5511999999999@s.whatsapp.net`"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Enviar Imagem (via URL)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"message\": \"Confira esta imagem!\",\n  \"url\": \"https://picsum.photos/800/600\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/image?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "image"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia imagem via URL pública.\n\n**Formatos suportados:** JPG, PNG, GIF\n**URL deve ser acessível publicamente!**"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Enviar Vídeo (via URL)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"message\": \"Veja este vídeo!\",\n  \"url\": \"https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/video?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "video"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia vídeo via URL pública.\n\n**Formatos suportados:** MP4, AVI, MKV\n**Tamanho máximo:** ~16MB (limite do WhatsApp)"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Enviar Áudio (via URL)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"url\": \"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/audio?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "audio"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia áudio via URL pública.\n\n**Formatos suportados:** MP3, OGG, M4A\n**Aparece como áudio, não como nota de voz**"
+					},
+					"response": []
+				},
+				{
+					"name": "5. Enviar Documento (via URL)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"message\": \"Segue o documento solicitado\",\n  \"url\": \"https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf\",\n  \"filename\": \"documento.pdf\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/document?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "document"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia documento via URL pública.\n\n**Formatos suportados:** PDF, DOC, DOCX, XLS, XLSX, TXT, etc.\n**Tamanho máximo:** ~100MB"
+					},
+					"response": []
+				},
+				{
+					"name": "6. Enviar Localização",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"latitude\": \"-23.550520\",\n  \"longitude\": \"-46.633308\",\n  \"name\": \"Avenida Paulista\",\n  \"address\": \"Av. Paulista, São Paulo - SP\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/location?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "location"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia localização geográfica.\n\n**Coordenadas:** Latitude e Longitude\n**Nome e endereço são opcionais**"
+					},
+					"response": []
+				},
+				{
+					"name": "7. Enviar Contato (vCard)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"vcard\": \"BEGIN:VCARD\\nVERSION:3.0\\nFN:João Silva\\nTEL;type=CELL;type=VOICE;waid=5511999999999:+55 11 99999-9999\\nEND:VCARD\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/contact?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "contact"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia contato no formato vCard.\n\n**Formato vCard 3.0**\nIncluir: Nome, telefone, email, etc."
+					},
+					"response": []
+				}
+			],
+			"description": "Envio de mensagens e mídias"
+		},
+		{
+			"name": "Groups",
+			"item": [
+				{
+					"name": "1. Criar Grupo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Meu Grupo de Teste\",\n  \"participants\": [\n    \"5511999999999@s.whatsapp.net\",\n    \"5511888888888@s.whatsapp.net\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/create?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "create"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Cria um novo grupo.\n\n**Participantes:** Array de números no formato `NÚMERO@s.whatsapp.net`\n**Mínimo:** 1 participante além de você"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Listar Grupos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/group/list?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "list"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Lista todos os grupos que você participa.\n\nRetorna: ID, nome, descrição, participantes"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Adicionar Participantes",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"groupId\": \"{{group_id}}\",\n  \"participants\": [\n    \"5511999999999@s.whatsapp.net\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/add?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "add"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Adiciona participantes ao grupo.\n\n**Você precisa ser admin do grupo!**"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Remover Participantes",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"groupId\": \"{{group_id}}\",\n  \"participants\": [\n    \"5511999999999@s.whatsapp.net\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/remove?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "remove"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Remove participantes do grupo.\n\n**Você precisa ser admin do grupo!**"
+					},
+					"response": []
+				},
+				{
+					"name": "5. Promover a Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"groupId\": \"{{group_id}}\",\n  \"participants\": [\n    \"5511999999999@s.whatsapp.net\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/promote?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "promote"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Promove participantes a administradores.\n\n**Você precisa ser admin do grupo!**"
+					},
+					"response": []
+				},
+				{
+					"name": "6. Rebaixar de Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"groupId\": \"{{group_id}}\",\n  \"participants\": [\n    \"5511999999999@s.whatsapp.net\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/demote?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "demote"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Remove privilégios de admin.\n\n**Você precisa ser admin do grupo!**"
+					},
+					"response": []
+				},
+				{
+					"name": "7. Atualizar Nome do Grupo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"groupId\": \"{{group_id}}\",\n  \"name\": \"Novo Nome do Grupo\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/update?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "update"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Atualiza o nome do grupo.\n\n**Você precisa ser admin do grupo!**"
+					},
+					"response": []
+				},
+				{
+					"name": "8. Sair do Grupo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"groupId\": \"{{group_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/leave?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "leave"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Sai do grupo.\n\n**Ação irreversível!** Você precisará ser adicionado novamente."
+					},
+					"response": []
+				}
+			],
+			"description": "Gerenciamento de grupos"
+		},
+		{
+			"name": "Misc",
+			"item": [
+				{
+					"name": "1. Verificar se Número Existe",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/misc/onwhatsapp?key={{instance_key}}&phone=5511999999999",
+							"host": ["{{base_url}}"],
+							"path": ["misc", "onwhatsapp"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								},
+								{
+									"key": "phone",
+									"value": "5511999999999",
+									"description": "Número SEM @s.whatsapp.net"
+								}
+							]
+						},
+						"description": "Verifica se um número está registrado no WhatsApp.\n\n**Formato:** Apenas números, sem @s.whatsapp.net\nExemplo: `5511999999999`"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Obter Foto de Perfil",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/misc/profilepic?key={{instance_key}}&id={{phone_number}}",
+							"host": ["{{base_url}}"],
+							"path": ["misc", "profilepic"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								},
+								{
+									"key": "id",
+									"value": "{{phone_number}}",
+									"description": "Número COM @s.whatsapp.net"
+								}
+							]
+						},
+						"description": "Obtém URL da foto de perfil.\n\n**Formato:** `NÚMERO@s.whatsapp.net`\n**Retorna:** URL da imagem em alta resolução"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Obter Status/Bio",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/misc/status?key={{instance_key}}&id={{phone_number}}",
+							"host": ["{{base_url}}"],
+							"path": ["misc", "status"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								},
+								{
+									"key": "id",
+									"value": "{{phone_number}}"
+								}
+							]
+						},
+						"description": "Obtém o status/bio do contato.\n\n**Formato:** `NÚMERO@s.whatsapp.net`\n**Retorna:** Texto do status"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Marcar como Lida",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"messageId\": \"MESSAGE_ID_AQUI\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/read?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "read"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Marca mensagem como lida (✓✓ azul).\n\n**messageId:** ID da mensagem recebida"
+					},
+					"response": []
+				}
+			],
+			"description": "Funcionalidades diversas"
+		}
+	]
+}
