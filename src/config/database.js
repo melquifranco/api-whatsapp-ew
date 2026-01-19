@@ -34,6 +34,13 @@ const sequelize = new Sequelize(POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, {
     port: POSTGRES_PORT,
     dialect: 'postgres',
     logging: false,
+    // SSL/TLS configuration for Render PostgreSQL
+    dialectOptions: {
+        ssl: {
+            require: true,
+            rejectUnauthorized: false, // Render uses self-signed certificates
+        },
+    },
     pool: {
         max: 5,
         min: 0,
