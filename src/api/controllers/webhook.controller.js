@@ -188,18 +188,12 @@ exports.getMessages = async (req, res) => {
             })
         }
 
-        const Message = require('../models/message.model')
-        const messages = await Message.findAll({
-            where: { instance_key: key },
-            order: [['timestamp', 'DESC']],
-            limit: limit
-        })
-
+        // TODO: Implement message retrieval from MongoDB if needed
         return res.status(200).json({
             error: false,
-            message: 'Messages retrieved successfully',
-            count: messages.length,
-            messages: messages
+            message: 'Message retrieval not yet implemented for MongoDB',
+            count: 0,
+            messages: []
         })
 
     } catch (error) {

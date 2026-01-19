@@ -1,21 +1,17 @@
 const axios = require('axios')
 const logger = require('pino')()
-const Webhook = require('../models/webhook.model')
-const Message = require('../models/message.model')
-const { postgresEnabled } = require('../../config/database')
+const config = require('../../config/config')
+
+// In-memory storage for webhooks (will be replaced by MongoDB later)
+const webhooks = new Map()
 
 class WebhookService {
     /**
      * Registra ou atualiza webhook para uma instância
      */
     static async registerWebhook(instanceKey, webhookUrl, events = null, enabled = true) {
-        if (!postgresEnabled) {
-            logger.warn('PostgreSQL is disabled, webhook will not be persisted')
-            return null
-        }
-
         try {
-            const [webhook, created] = await Webhook.upsert({
+            const webhook = {
                 instance_key: instanceKey,
                 webhook_url: webhookUrl,
                 enabled: enabled,
@@ -36,11 +32,17 @@ class WebhookService {
                     group_participants_update: false,
                     connection_update: true,
                 },
-            }, {
-                returning: true
-            })
+                retry_count: 3,
+                retry_delay: 1000,
+                last_success_at: null,
+                last_failure_at: null,
+                last_error: null,
+                total_sent: 0,
+                total_failed: 0,
+            }
 
-            logger.info(`Webhook ${created ? 'created' : 'updated'} for instance ${instanceKey}`)
+            webhooks.set(instanceKey, webhook)
+            logger.info(`Webhook registered for instance ${instanceKey}`)
             return webhook
         } catch (error) {
             logger.error(`Failed to register webhook for instance ${instanceKey}:`, error)
@@ -52,39 +54,18 @@ class WebhookService {
      * Obtém configuração de webhook de uma instância
      */
     static async getWebhook(instanceKey) {
-        if (!postgresEnabled) {
-            return null
-        }
-
-        try {
-            const webhook = await Webhook.findOne({
-                where: { instance_key: instanceKey }
-            })
-            return webhook
-        } catch (error) {
-            logger.error(`Failed to get webhook for instance ${instanceKey}:`, error)
-            return null
-        }
+        return webhooks.get(instanceKey) || null
     }
 
     /**
      * Remove webhook de uma instância
      */
     static async removeWebhook(instanceKey) {
-        if (!postgresEnabled) {
-            return false
-        }
-
-        try {
-            const deleted = await Webhook.destroy({
-                where: { instance_key: instanceKey }
-            })
+        const deleted = webhooks.delete(instanceKey)
+        if (deleted) {
             logger.info(`Webhook removed for instance ${instanceKey}`)
-            return deleted > 0
-        } catch (error) {
-            logger.error(`Failed to remove webhook for instance ${instanceKey}:`, error)
-            return false
         }
+        return deleted
     }
 
     /**
@@ -125,10 +106,9 @@ class WebhookService {
                 })
 
                 // Sucesso
-                await webhook.update({
-                    last_success_at: new Date(),
-                    total_sent: webhook.total_sent + 1,
-                })
+                webhook.last_success_at = new Date()
+                webhook.total_sent++
+                webhooks.set(instanceKey, webhook)
 
                 logger.info(`Webhook sent successfully for instance ${instanceKey}, event: ${eventType}`)
                 return true
@@ -147,124 +127,38 @@ class WebhookService {
         }
 
         // Todas as tentativas falharam
-        await webhook.update({
-            last_failure_at: new Date(),
-            last_error: lastError,
-            total_failed: webhook.total_failed + 1,
-        })
+        webhook.last_failure_at = new Date()
+        webhook.last_error = lastError
+        webhook.total_failed++
+        webhooks.set(instanceKey, webhook)
 
         logger.error(`Webhook failed after ${webhook.retry_count} attempts for instance ${instanceKey}`)
         return false
     }
 
     /**
-     * Salva mensagem recebida no banco de dados
+     * Salva mensagem recebida (in-memory para agora, MongoDB depois)
      */
     static async saveMessage(instanceKey, messageData) {
-        if (!postgresEnabled) {
-            return null
-        }
-
-        try {
-            const key = messageData.key
-            const message = messageData.message
-
-            // Extrai o texto da mensagem
-            let messageText = null
-            let messageType = 'unknown'
-
-            if (message.conversation) {
-                messageText = message.conversation
-                messageType = 'conversation'
-            } else if (message.extendedTextMessage) {
-                messageText = message.extendedTextMessage.text
-                messageType = 'extendedTextMessage'
-            } else if (message.imageMessage) {
-                messageText = message.imageMessage.caption || null
-                messageType = 'imageMessage'
-            } else if (message.videoMessage) {
-                messageText = message.videoMessage.caption || null
-                messageType = 'videoMessage'
-            } else if (message.audioMessage) {
-                messageType = 'audioMessage'
-            } else if (message.documentMessage) {
-                messageText = message.documentMessage.caption || null
-                messageType = 'documentMessage'
-            } else if (message.stickerMessage) {
-                messageType = 'stickerMessage'
-            } else if (message.locationMessage) {
-                messageType = 'locationMessage'
-            } else if (message.contactMessage) {
-                messageType = 'contactMessage'
-            }
-
-            const savedMessage = await Message.create({
-                instance_key: instanceKey,
-                message_id: key.id,
-                remote_jid: key.remoteJid,
-                from_me: key.fromMe || false,
-                participant: key.participant || null,
-                message_type: messageType,
-                message_text: messageText,
-                message_data: messageData,
-                timestamp: messageData.messageTimestamp || Date.now(),
-                status: 'received',
-                webhook_sent: false,
-            })
-
-            logger.info(`Message saved to database: ${key.id} from ${key.remoteJid}`)
-            return savedMessage
-
-        } catch (error) {
-            logger.error(`Failed to save message to database:`, error)
-            return null
-        }
+        // TODO: Implement MongoDB storage
+        logger.debug(`Message received for instance ${instanceKey}`)
+        return null
     }
 
     /**
      * Marca mensagem como enviada para webhook
      */
     static async markMessageWebhookSent(messageId) {
-        if (!postgresEnabled) {
-            return false
-        }
-
-        try {
-            await Message.update({
-                webhook_sent: true,
-                webhook_sent_at: new Date(),
-            }, {
-                where: { id: messageId }
-            })
-            return true
-        } catch (error) {
-            logger.error(`Failed to mark message as webhook sent:`, error)
-            return false
-        }
+        // TODO: Implement MongoDB storage
+        return true
     }
 
     /**
      * Busca mensagens não enviadas para webhook
      */
     static async getPendingWebhookMessages(instanceKey, limit = 100) {
-        if (!postgresEnabled) {
-            return []
-        }
-
-        try {
-            const messages = await Message.findAll({
-                where: {
-                    instance_key: instanceKey,
-                    webhook_sent: false,
-                },
-                order: [['timestamp', 'ASC']],
-                limit: limit,
-            })
-            return messages
-        } catch (error) {
-            logger.error(`Failed to get pending webhook messages:`, error)
-            return []
-        }
+        // TODO: Implement MongoDB storage
+        return []
     }
 }
 

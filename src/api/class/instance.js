@@ -10,13 +10,13 @@ const { v4: uuidv4 } = require('uuid')
 const path = require('path')
 const processButton = require('../helper/processbtn')
 const generateVC = require('../helper/genVc')
-const Chat = require('../models/chat.model')
 const axios = require('axios')
 const config = require('../../config/config')
 const downloadMessage = require('../helper/downloadMsg')
 const logger = require('pino')()
-const usePostgresAuthState = require('../helper/postgresAuthState')
 const WebhookService = require('../services/webhook.service')
+const useMongoDBAuthState = require('../helper/mongoAuthState')
+const connectToCluster = require('../helper/connectMongoClient')
 
 class WhatsAppInstance {
     socketConfig = {
@@ -73,7 +73,35 @@ class WhatsAppInstance {
     }
 
     async init() {
-        const { state, saveCreds } = await usePostgresAuthState(this.key)
+        let state, saveCreds
+        
+        if (config.mongodb && config.mongodb.enabled) {
+            try {
+                const mongoClient = await connectToCluster(config.mongodb.uri)
+                const collection = mongoClient
+                    .db('whatsapp')
+                    .collection('auth_info_baileys')
+                const { state: mongoState, saveCreds: mongoSaveCreds } = await useMongoDBAuthState(collection)
+                state = mongoState
+                saveCreds = mongoSaveCreds
+            } catch (error) {
+                logger.error('Failed to initialize MongoDB auth state:', error.message)
+                // Fallback to memory-only auth state
+                const { useMultiFileAuthState } = require('@whiskeysockets/baileys')
+                const authPath = path.join(__dirname, '../sessiondata', `session_${this.key}`)
+                const { state: fileState, saveCreds: fileSaveCreds } = await useMultiFileAuthState(authPath)
+                state = fileState
+                saveCreds = fileSaveCreds
+            }
+        } else {
+            // Use file-based auth state when MongoDB is disabled
+            const { useMultiFileAuthState } = require('@whiskeysockets/baileys')
+            const authPath = path.join(__dirname, '../sessiondata', `session_${this.key}`)
+            const { state: fileState, saveCreds: fileSaveCreds } = await useMultiFileAuthState(authPath)
+            state = fileState
+            saveCreds = fileSaveCreds
+        }
+        
         this.authState = { state: state, saveCreds: saveCreds }
         this.socketConfig.auth = this.authState.state
         this.socketConfig.browser = Object.values(config.browser)
@@ -162,15 +190,6 @@ class WhatsAppInstance {
                         this.key
                     )
             } else if (connection === 'open') {
-                if (config.mongoose && config.mongoose.enabled) {
-                    let alreadyThere = await Chat.findOne({
-                        key: this.key,
-                    }).exec()
-                    if (!alreadyThere) {
-                        const saveChat = new Chat({ key: this.key })
-                        await saveChat.save()
-                    }
-                }
                 this.instance.online = true
                 if (
                     [
@@ -479,10 +498,10 @@ class WhatsAppInstance {
 
     async deleteInstance(key) {
         try {
-            // Limpar do banco de dados
-            await Chat.findOneAndDelete({ key: key })
+            logger.info(`Deleting instance ${key}`)
+            // MongoDB cleanup would go here if needed
         } catch (e) {
-            logger.error('Error deleting from database:', e.message)
+            logger.error('Error deleting instance:', e.message)
         }
         
         try {
@@ -853,11 +872,9 @@ class WhatsAppInstance {
         }
     }
 
-    // get Chat object from db
+    // get Chat object from instance
     async getChat(key = this.key) {
-        let dbResult = await Chat.findOne({ key: key }).exec()
-        let ChatObj = dbResult.chat
-        return ChatObj
+        return this.instance.chats
     }
 
     // create new group by application
@@ -1049,12 +1066,12 @@ class WhatsAppInstance {
         }
     }
 
-    // update db document -> chat
+    // update instance chats
     async updateDb(object) {
         try {
-            await Chat.updateOne({ key: this.key }, { chat: object })
+            this.instance.chats = object
         } catch (e) {
-            logger.error('Error updating document failed')
+            logger.error('Error updating chats failed')
         }
     }
 
