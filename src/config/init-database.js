@@ -5,6 +5,41 @@ const Webhook = require('../api/models/webhook.model')
 const Message = require('../api/models/message.model')
 
 /**
+ * Aguarda um tempo em milissegundos
+ */
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
+ * Tenta conectar ao PostgreSQL com retry automático
+ * Render Free Tier é instável e precisa de múltiplas tentativas
+ */
+async function connectWithRetry(maxRetries = 5, delayMs = 2000) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            logger.info(`Attempting to connect to PostgreSQL (attempt ${attempt}/${maxRetries})...`)
+            await sequelize.authenticate()
+            logger.info(`✅ Connected to PostgreSQL successfully (attempt ${attempt}/${maxRetries})`)
+            return true
+        } catch (error) {
+            logger.warn(`⚠️  Connection attempt ${attempt}/${maxRetries} failed:`, {
+                message: error.message,
+                code: error.code,
+            })
+            
+            if (attempt < maxRetries) {
+                logger.info(`Retrying in ${delayMs}ms...`)
+                await sleep(delayMs)
+            }
+        }
+    }
+    
+    logger.error(`❌ Failed to connect after ${maxRetries} attempts`)
+    return false
+}
+
+/**
  * Inicializa o banco de dados PostgreSQL
  * Cria as tabelas se não existirem
  */
@@ -15,10 +50,13 @@ async function initDatabase() {
     }
 
     try {
-        // Testa a conexão com retry
-        logger.info('Attempting to connect to PostgreSQL...')
-        await sequelize.authenticate()
-        logger.info('✅ Connected to PostgreSQL successfully')
+        // Tenta conectar com retry automático (5 tentativas, 2s de delay)
+        const connected = await connectWithRetry(5, 2000)
+        
+        if (!connected) {
+            logger.error('❌ Could not establish connection to PostgreSQL')
+            return
+        }
 
         // Sincroniza os modelos (cria tabelas se não existirem)
         // Usar force: true apenas se DATABASE_RESET=true estiver definido
