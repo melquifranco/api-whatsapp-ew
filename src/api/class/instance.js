@@ -16,6 +16,7 @@ const config = require('../../config/config')
 const downloadMessage = require('../helper/downloadMsg')
 const logger = require('pino')()
 const usePostgresAuthState = require('../helper/postgresAuthState')
+const WebhookService = require('../services/webhook.service')
 
 class WhatsAppInstance {
     socketConfig = {
@@ -314,6 +315,9 @@ class WhatsAppInstance {
                 )
                     return
 
+                // Salva mensagem no banco de dados
+                const savedMessage = await WebhookService.saveMessage(this.key, msg)
+
                 const webhookData = {
                     key: this.key,
                     ...msg,
@@ -347,12 +351,19 @@ class WhatsAppInstance {
                             break
                     }
                 }
+                // Envia para webhook (sistema antigo)
                 if (
                     ['all', 'messages', 'messages.upsert'].some((e) =>
                         config.webhookAllowedEvents.includes(e)
                     )
                 )
                     await this.SendWebhook('message', webhookData, this.key)
+                
+                // Envia para webhook (sistema novo com PostgreSQL)
+                const webhookSent = await WebhookService.sendWebhook(this.key, 'messages_upsert', webhookData)
+                if (webhookSent && savedMessage) {
+                    await WebhookService.markMessageWebhookSent(savedMessage.id)
+                }
             })
         })
 

@@ -5,17 +5,18 @@ dotenv.config()
 const app = require('./config/express')
 const config = require('./config/config')
 const { sequelize, postgresEnabled } = require('./config/database')
+const { initDatabase } = require('./config/init-database')
 
 const { Session } = require('./api/class/session')
 
 let server
 
+// Inicializa o banco de dados PostgreSQL
 if (postgresEnabled) {
-    sequelize.authenticate().then(() => {
-        logger.info('Connected to PostgreSQL')
-        return sequelize.sync()
+    initDatabase().then(() => {
+        logger.info('PostgreSQL initialized successfully')
     }).catch((error) => {
-        logger.error('Failed to connect to PostgreSQL:', error)
+        logger.error('Failed to initialize PostgreSQL:', error)
     })
 }
 
