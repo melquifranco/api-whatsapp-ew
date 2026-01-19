@@ -26,7 +26,10 @@ async function connectWithRetry(maxRetries = 5, delayMs = 2000) {
             logger.warn(`⚠️  Connection attempt ${attempt}/${maxRetries} failed:`, {
                 message: error.message,
                 code: error.code,
+                name: error.name,
             })
+            // Log completo do erro para debug
+            logger.error('Full error details:', error)
             
             if (attempt < maxRetries) {
                 logger.info(`Retrying in ${delayMs}ms...`)
