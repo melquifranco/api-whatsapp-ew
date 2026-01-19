@@ -4,20 +4,24 @@ dotenv.config()
 
 const app = require('./config/express')
 const config = require('./config/config')
-const { sequelize, postgresEnabled } = require('./config/database')
-const { initDatabase } = require('./config/init-database')
+const connectToCluster = require('./api/helper/connectMongoClient')
 
 const { Session } = require('./api/class/session')
 
 let server
+let mongoClient
 
-// Inicializa o banco de dados PostgreSQL
-if (postgresEnabled) {
-    initDatabase().then(() => {
-        logger.info('PostgreSQL initialized successfully')
-    }).catch((error) => {
-        logger.error('Failed to initialize PostgreSQL:', error)
-    })
+// Inicializa o banco de dados MongoDB
+if (config.mongodb.enabled) {
+    connectToCluster(config.mongodb.uri)
+        .then((client) => {
+            mongoClient = client
+            logger.info('✅ MongoDB initialized successfully')
+        })
+        .catch((error) => {
+            logger.error('❌ Failed to initialize MongoDB:', error.message)
+            logger.warn('⚠️  Continuing without MongoDB - some features may not work')
+        })
 }
 
 server = app.listen(config.port, async () => {
@@ -31,6 +35,9 @@ server = app.listen(config.port, async () => {
 })
 
 const exitHandler = () => {
+    if (mongoClient) {
+        mongoClient.close()
+    }
     if (server) {
         server.close(() => {
             logger.info('Server closed')
