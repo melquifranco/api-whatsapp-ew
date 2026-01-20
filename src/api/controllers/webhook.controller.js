@@ -1,5 +1,4 @@
 const WebhookService = require('../services/webhook.service')
-const { WhatsAppInstances } = require('../class/instance')
 
 /**
  * Configura webhook para uma instância
@@ -23,16 +22,17 @@ exports.setWebhook = async (req, res) => {
             })
         }
 
-        // Verifica se a instância existe
-        const instance = WhatsAppInstances[key]
-        if (!instance) {
-            return res.status(404).json({
+        // Valida URL
+        try {
+            new URL(webhook_url)
+        } catch (error) {
+            return res.status(400).json({
                 error: true,
-                message: 'Instance not found'
+                message: 'Invalid webhook URL format'
             })
         }
 
-        // Registra webhook
+        // Registra webhook (não precisa verificar se instância existe)
         const webhook = await WebhookService.registerWebhook(
             key,
             webhook_url,
@@ -43,7 +43,16 @@ exports.setWebhook = async (req, res) => {
         return res.status(200).json({
             error: false,
             message: 'Webhook configured successfully',
-            webhook: webhook
+            webhook: {
+                instance_key: webhook.instance_key,
+                webhook_url: webhook.webhook_url,
+                enabled: webhook.enabled,
+                events: webhook.events,
+                retry_count: webhook.retry_count,
+                retry_delay: webhook.retry_delay,
+                created_at: webhook.createdAt,
+                updated_at: webhook.updatedAt
+            }
         })
 
     } catch (error) {
@@ -80,7 +89,21 @@ exports.getWebhook = async (req, res) => {
         return res.status(200).json({
             error: false,
             message: 'Webhook found',
-            webhook: webhook
+            webhook: {
+                instance_key: webhook.instance_key,
+                webhook_url: webhook.webhook_url,
+                enabled: webhook.enabled,
+                events: webhook.events,
+                retry_count: webhook.retry_count,
+                retry_delay: webhook.retry_delay,
+                total_sent: webhook.total_sent,
+                total_failed: webhook.total_failed,
+                last_success_at: webhook.last_success_at,
+                last_failure_at: webhook.last_failure_at,
+                last_error: webhook.last_error,
+                created_at: webhook.createdAt,
+                updated_at: webhook.updatedAt
+            }
         })
 
     } catch (error) {
@@ -174,12 +197,43 @@ exports.testWebhook = async (req, res) => {
 }
 
 /**
- * Lista mensagens recebidas (histórico)
+ * Lista todos os webhooks configurados
  */
-exports.getMessages = async (req, res) => {
+exports.listWebhooks = async (req, res) => {
+    try {
+        const webhooks = await WebhookService.listWebhooks()
+
+        return res.status(200).json({
+            error: false,
+            message: 'Webhooks retrieved successfully',
+            count: webhooks.length,
+            webhooks: webhooks.map(w => ({
+                instance_key: w.instance_key,
+                webhook_url: w.webhook_url,
+                enabled: w.enabled,
+                total_sent: w.total_sent,
+                total_failed: w.total_failed,
+                last_success_at: w.last_success_at,
+                last_failure_at: w.last_failure_at,
+                created_at: w.createdAt,
+                updated_at: w.updatedAt
+            }))
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            error: true,
+            message: error.message
+        })
+    }
+}
+
+/**
+ * Obtém estatísticas de um webhook
+ */
+exports.getWebhookStats = async (req, res) => {
     try {
         const key = req.query.key
-        const limit = req.query.limit ? parseInt(req.query.limit) : 50
 
         if (!key) {
             return res.status(400).json({
@@ -188,12 +242,19 @@ exports.getMessages = async (req, res) => {
             })
         }
 
-        // TODO: Implement message retrieval from MongoDB if needed
+        const stats = await WebhookService.getWebhookStats(key)
+
+        if (!stats) {
+            return res.status(404).json({
+                error: true,
+                message: 'Webhook not found for this instance'
+            })
+        }
+
         return res.status(200).json({
             error: false,
-            message: 'Message retrieval not yet implemented for MongoDB',
-            count: 0,
-            messages: []
+            message: 'Webhook statistics retrieved successfully',
+            stats: stats
         })
 
     } catch (error) {

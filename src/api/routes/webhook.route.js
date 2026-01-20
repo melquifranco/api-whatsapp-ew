@@ -13,7 +13,10 @@ router.delete('/remove', webhookController.removeWebhook)
 // Testar webhook
 router.get('/test', webhookController.testWebhook)
 
-// Listar mensagens recebidas
-router.get('/messages', webhookController.getMessages)
+// Listar todos os webhooks configurados
+router.get('/list', webhookController.listWebhooks)
+
+// Obter estatísticas de um webhook
+router.get('/stats', webhookController.getWebhookStats)
 
 module.exports = router
