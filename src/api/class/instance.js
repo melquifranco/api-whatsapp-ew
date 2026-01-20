@@ -419,18 +419,40 @@ class WhatsAppInstance {
                 let lid = null
                 let phoneNumber = null
                 
-                // Tentar extrair LID do participant ou remoteJid
+                // Tentar extrair LID do participant
                 if (msg.key.participant) {
                     const match = msg.key.participant.match(/lid:(\d+)@/)
                     if (match) {
                         lid = match[1]
-                        // Tentar obter número real do pushName ou contact
                         phoneNumber = msg.pushName || msg.key.participant.split('@')[0]
                     } else {
                         phoneNumber = msg.key.participant.split('@')[0]
                     }
-                } else if (msg.key.remoteJid) {
-                    phoneNumber = msg.key.remoteJid.split('@')[0]
+                }
+                
+                // Tentar extrair LID do remoteJid (mensagens diretas)
+                if (msg.key.remoteJid) {
+                    const remoteJidClean = msg.key.remoteJid.split('@')[0]
+                    
+                    // Verificar se é LID (apenas números, sem 55)
+                    if (remoteJidClean.length > 11 && !remoteJidClean.startsWith('55')) {
+                        lid = remoteJidClean
+                        // Buscar número real no LidMapping
+                        const mapping = await LidMapping.findOne({ 
+                            instance_key: this.key, 
+                            lid: lid 
+                        }).catch(err => null)
+                        
+                        if (mapping) {
+                            phoneNumber = mapping.phone_number
+                        } else {
+                            // Usar pushName como fallback
+                            phoneNumber = msg.pushName || remoteJidClean
+                        }
+                    } else {
+                        // Número normal
+                        phoneNumber = remoteJidClean
+                    }
                 }
                 
                 // Salvar mapeamento LID → número se LID existir
