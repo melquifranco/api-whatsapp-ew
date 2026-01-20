@@ -171,9 +171,11 @@ class WhatsAppInstance {
                     this.instance.online = false
                     this.instance.qr = ''
                 } else {
-                    await this.collection.drop().then((r) => {
-                        logger.info('STATE: Droped collection')
-                    })
+                    if (this.collection) {
+                        await this.collection.drop().then((r) => {
+                            logger.info('STATE: Droped collection')
+                        })
+                    }
                     this.instance.online = false
                 }
 
