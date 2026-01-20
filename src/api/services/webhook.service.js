@@ -94,8 +94,8 @@ class WebhookService {
                 return false
             }
 
-            // Verifica se o evento está habilitado
-            if (webhook.events && !webhook.events[eventType]) {
+            // Verifica se o evento está habilitado (exceto 'test')
+            if (eventType !== 'test' && webhook.events && !webhook.events[eventType]) {
                 logger.debug(`Event ${eventType} is disabled for instance ${instanceKey}`)
                 return false
             }
