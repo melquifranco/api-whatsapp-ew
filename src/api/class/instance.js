@@ -260,6 +260,28 @@ class WhatsAppInstance {
             this.instance.chats.push(...recivedChats)
             await this.updateDb(this.instance.chats)
             await this.updateDbGroupsParticipants()
+            
+            // Salva todos os chats no MongoDB (sincronização inicial)
+            logger.info(`Syncing ${chats.length} chats to MongoDB...`)
+            for (const chat of chats) {
+                await Chat.findOneAndUpdate(
+                    { instance_key: this.key, chat_id: chat.id },
+                    {
+                        instance_key: this.key,
+                        chat_id: chat.id,
+                        name: chat.name,
+                        is_group: chat.id.endsWith('@g.us'),
+                        unread_count: chat.unreadCount || 0,
+                        last_message_timestamp: chat.conversationTimestamp ? new Date(chat.conversationTimestamp * 1000) : null,
+                        archived: chat.archived || false,
+                        pinned: chat.pinned || false,
+                        muted: chat.mute ? true : false,
+                        metadata: chat
+                    },
+                    { upsert: true }
+                ).catch(err => logger.error('Error syncing chat:', err))
+            }
+            logger.info(`✅ ${chats.length} chats synced to MongoDB`)
         })
 
         // on recive new chat
@@ -288,6 +310,43 @@ class WhatsAppInstance {
                     },
                     { upsert: true }
                 ).catch(err => logger.error('Error saving chat:', err))
+            }
+        })
+
+        // on contacts upsert
+        sock?.ev.on('contacts.upsert', async (contacts) => {
+            logger.info(`Syncing ${contacts.length} contacts to MongoDB...`)
+            for (const contact of contacts) {
+                await Contact.findOneAndUpdate(
+                    { instance_key: this.key, contact_id: contact.id },
+                    {
+                        instance_key: this.key,
+                        contact_id: contact.id,
+                        name: contact.name,
+                        notify: contact.notify,
+                        verified_name: contact.verifiedName,
+                        img_url: contact.imgUrl,
+                        status: contact.status
+                    },
+                    { upsert: true }
+                ).catch(err => logger.error('Error saving contact:', err))
+            }
+            logger.info(`✅ ${contacts.length} contacts synced to MongoDB`)
+        })
+        
+        // on contacts update
+        sock?.ev.on('contacts.update', async (contacts) => {
+            for (const contact of contacts) {
+                await Contact.findOneAndUpdate(
+                    { instance_key: this.key, contact_id: contact.id },
+                    {
+                        name: contact.name,
+                        notify: contact.notify,
+                        verified_name: contact.verifiedName,
+                        img_url: contact.imgUrl,
+                        status: contact.status
+                    }
+                ).catch(err => logger.error('Error updating contact:', err))
             }
         })
 
