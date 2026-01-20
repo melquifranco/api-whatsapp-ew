@@ -17,6 +17,9 @@ const logger = require('pino')()
 const WebhookService = require('../services/webhook.service')
 const useMongoDBAuthState = require('../helper/mongoAuthState')
 const connectToCluster = require('../helper/connectMongoClient')
+const Message = require('../models/message.model')
+const Chat = require('../models/chat.model')
+const Contact = require('../models/contact.model')
 
 class WhatsAppInstance {
     socketConfig = {
@@ -260,9 +263,7 @@ class WhatsAppInstance {
         })
 
         // on recive new chat
-        sock?.ev.on('chats.upsert', (newChat) => {
-            //console.log('chats.upsert')
-            //console.log(newChat)
+        sock?.ev.on('chats.upsert', async (newChat) => {
             const chats = newChat.map((chat) => {
                 return {
                     ...chat,
@@ -270,6 +271,24 @@ class WhatsAppInstance {
                 }
             })
             this.instance.chats.push(...chats)
+            
+            // Salva chats no MongoDB
+            for (const chat of newChat) {
+                await Chat.findOneAndUpdate(
+                    { instance_key: this.key, chat_id: chat.id },
+                    {
+                        instance_key: this.key,
+                        chat_id: chat.id,
+                        name: chat.name,
+                        is_group: chat.id.endsWith('@g.us'),
+                        unread_count: chat.unreadCount || 0,
+                        archived: chat.archived || false,
+                        pinned: chat.pinned || false,
+                        metadata: chat
+                    },
+                    { upsert: true }
+                ).catch(err => logger.error('Error saving chat:', err))
+            }
         })
 
         // on chat change
@@ -334,8 +353,26 @@ class WhatsAppInstance {
                 )
                     return
 
-                // Salva mensagem no banco de dados
-                const savedMessage = await WebhookService.saveMessage(this.key, msg)
+                // Salva mensagem no MongoDB
+                const savedMessage = await Message.findOneAndUpdate(
+                    { 
+                        instance_key: this.key,
+                        message_id: msg.key.id
+                    },
+                    {
+                        instance_key: this.key,
+                        message_id: msg.key.id,
+                        remote_jid: msg.key.remoteJid,
+                        from_me: msg.key.fromMe || false,
+                        participant: msg.key.participant,
+                        message_type: messageType,
+                        message_content: msg.message,
+                        message_timestamp: new Date(parseInt(msg.messageTimestamp) * 1000),
+                        status: 'SENT',
+                        raw_data: msg
+                    },
+                    { upsert: true, new: true }
+                ).catch(err => logger.error('Error saving message:', err))
 
                 const webhookData = {
                     key: this.key,
@@ -378,10 +415,13 @@ class WhatsAppInstance {
                 )
                     await this.SendWebhook('message', webhookData, this.key)
                 
-                // Envia para webhook (sistema novo com PostgreSQL)
+                // Envia para webhook (sistema novo com MongoDB)
                 const webhookSent = await WebhookService.sendWebhook(this.key, 'messages_upsert', webhookData)
                 if (webhookSent && savedMessage) {
-                    await WebhookService.markMessageWebhookSent(savedMessage.id)
+                    await Message.updateOne(
+                        { _id: savedMessage._id },
+                        { webhook_sent: true, webhook_sent_at: new Date() }
+                    ).catch(err => logger.error('Error updating webhook_sent:', err))
                 }
             })
         })

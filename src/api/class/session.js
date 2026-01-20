@@ -2,18 +2,42 @@
 const { WhatsAppInstance } = require('../class/instance')
 const logger = require('pino')()
 const config = require('../../config/config')
-const fs = require('fs')
-const path = require('path')
-const os = require('os')
+const connectToCluster = require('../helper/connectMongoClient')
 
 class Session {
     async restoreSessions() {
         let restoredSessions = new Array()
         
-        // DESABILITADO: Restauração automática pode causar problemas com credenciais corrompidas
-        // Usuários devem criar novas instâncias manualmente via /instance/init
-        logger.info('Automatic session restoration is disabled to prevent corrupted credentials issues')
-        logger.info('Create new instances manually via /instance/init endpoint')
+        // Restaura instâncias do MongoDB
+        if (!config.mongodb || !config.mongodb.enabled) {
+            logger.info('MongoDB disabled, skipping session restoration')
+            return restoredSessions
+        }
+        
+        try {
+            const mongoClient = await connectToCluster(config.mongodb.uri)
+            const collection = mongoClient.db('whatsapp').collection('auth_info_baileys')
+            
+            // Busca todas as instâncias únicas (pelo prefixo instance_key)
+            const docs = await collection.find({ _id: /^.*:creds$/ }).toArray()
+            const instanceKeys = docs.map(doc => doc._id.replace(':creds', ''))
+            
+            logger.info(`Found ${instanceKeys.length} instance(s) to restore from MongoDB`)
+            
+            for (const key of instanceKeys) {
+                try {
+                    const instance = new WhatsAppInstance(key, false, null)
+                    await instance.init()
+                    global.WhatsAppInstances[key] = instance
+                    restoredSessions.push(key)
+                    logger.info(`Instance ${key} restored successfully`)
+                } catch (error) {
+                    logger.error(`Error restoring instance ${key}:`, error.message)
+                }
+            }
+        } catch (error) {
+            logger.error('Error restoring sessions from MongoDB:', error.message)
+        }
         
         return restoredSessions
         
