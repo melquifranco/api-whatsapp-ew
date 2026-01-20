@@ -499,7 +499,18 @@ class WhatsAppInstance {
     async deleteInstance(key) {
         try {
             logger.info(`Deleting instance ${key}`)
-            // MongoDB cleanup would go here if needed
+            
+            // MongoDB cleanup - deletar autenticação do banco
+            if (config.mongodb && config.mongodb.enabled) {
+                try {
+                    const mongoClient = await connectToCluster(config.mongodb.uri)
+                    const collection = mongoClient.db('whatsapp').collection('auth_info_baileys')
+                    const result = await collection.deleteMany({ _id: { $regex: `^${key}:` } })
+                    logger.info(`Deleted ${result.deletedCount} auth documents from MongoDB for instance ${key}`)
+                } catch (mongoError) {
+                    logger.error(`Error deleting MongoDB auth for instance ${key}:`, mongoError.message)
+                }
+            }
         } catch (e) {
             logger.error('Error deleting instance:', e.message)
         }
