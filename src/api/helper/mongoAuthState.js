@@ -52,17 +52,20 @@ const BufferJSON = {
     },
 }
 
-module.exports = useMongoDBAuthState = async (collection) => {
+module.exports = useMongoDBAuthState = async (collection, instanceKey) => {
+    // Adicionar prefixo com instance_key para isolar auth de cada instância
+    const prefixId = (id) => `${instanceKey}:${id}`
+    
     const writeData = (data, id) => {
         return collection.replaceOne(
-            { _id: id },
+            { _id: prefixId(id) },
             JSON.parse(JSON.stringify(data, BufferJSON.replacer)),
             { upsert: true }
         )
     }
     const readData = async (id) => {
         try {
-            const data = JSON.stringify(await collection.findOne({ _id: id }))
+            const data = JSON.stringify(await collection.findOne({ _id: prefixId(id) }))
             return JSON.parse(data, BufferJSON.reviver)
         } catch (error) {
             return null
@@ -70,7 +73,7 @@ module.exports = useMongoDBAuthState = async (collection) => {
     }
     const removeData = async (id) => {
         try {
-            await collection.deleteOne({ _id: id })
+            await collection.deleteOne({ _id: prefixId(id) })
         } catch (_a) {}
     }
     const creds = (await readData('creds')) || (0, initAuthCreds)()

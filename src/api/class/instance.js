@@ -81,7 +81,7 @@ class WhatsAppInstance {
                 const collection = mongoClient
                     .db('whatsapp')
                     .collection('auth_info_baileys')
-                const { state: mongoState, saveCreds: mongoSaveCreds } = await useMongoDBAuthState(collection)
+                const { state: mongoState, saveCreds: mongoSaveCreds } = await useMongoDBAuthState(collection, this.key)
                 state = mongoState
                 saveCreds = mongoSaveCreds
             } catch (error) {
