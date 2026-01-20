@@ -472,6 +472,8 @@ class WhatsAppInstance {
 
                 const webhookData = {
                     key: this.key,
+                    phone_number: phoneNumber,
+                    lid: lid,
                     ...msg,
                 }
 
