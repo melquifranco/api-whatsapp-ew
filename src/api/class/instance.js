@@ -18,6 +18,7 @@ const WebhookService = require('../services/webhook.service')
 const useMongoDBAuthState = require('../helper/mongoAuthState')
 const connectToCluster = require('../helper/connectMongoClient')
 const Message = require('../models/message.model')
+const LidMapping = require('../models/lidmapping.model')
 const Chat = require('../models/chat.model')
 const Contact = require('../models/contact.model')
 
@@ -414,6 +415,38 @@ class WhatsAppInstance {
                 )
                     return
 
+                // Extrair LID e número real para mapeamento
+                let lid = null
+                let phoneNumber = null
+                
+                // Tentar extrair LID do participant ou remoteJid
+                if (msg.key.participant) {
+                    const match = msg.key.participant.match(/lid:(\d+)@/)
+                    if (match) {
+                        lid = match[1]
+                        // Tentar obter número real do pushName ou contact
+                        phoneNumber = msg.pushName || msg.key.participant.split('@')[0]
+                    } else {
+                        phoneNumber = msg.key.participant.split('@')[0]
+                    }
+                } else if (msg.key.remoteJid) {
+                    phoneNumber = msg.key.remoteJid.split('@')[0]
+                }
+                
+                // Salvar mapeamento LID → número se LID existir
+                if (lid && phoneNumber) {
+                    await LidMapping.findOneAndUpdate(
+                        { instance_key: this.key, lid: lid },
+                        { 
+                            instance_key: this.key,
+                            lid: lid,
+                            phone_number: phoneNumber,
+                            last_seen: new Date()
+                        },
+                        { upsert: true }
+                    ).catch(err => logger.error('Error saving LID mapping:', err))
+                }
+
                 // Salva mensagem no MongoDB
                 const savedMessage = await Message.findOneAndUpdate(
                     { 
@@ -426,6 +459,8 @@ class WhatsAppInstance {
                         remote_jid: msg.key.remoteJid,
                         from_me: msg.key.fromMe || false,
                         participant: msg.key.participant,
+                        lid: lid,
+                        phone_number: phoneNumber,
                         message_type: messageType,
                         message_content: msg.message,
                         message_timestamp: new Date(parseInt(msg.messageTimestamp) * 1000),

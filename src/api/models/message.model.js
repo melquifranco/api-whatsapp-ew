@@ -21,6 +21,8 @@ const messageSchema = new mongoose.Schema({
         default: false
     },
     participant: String,
+    lid: String,
+    phone_number: String,
     message_type: String,
     message_content: mongoose.Schema.Types.Mixed,
     message_timestamp: {
