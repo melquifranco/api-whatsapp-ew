@@ -1,6 +1,7 @@
 const { WhatsAppInstance } = require('../class/instance')
 const fs = require('fs')
 const path = require('path')
+const os = require('os')
 const config = require('../../config/config')
 const { Session } = require('../class/session')
 
@@ -29,27 +30,42 @@ exports.init = async (req, res) => {
 
 exports.qr = async (req, res) => {
     try {
-        const qrcode = await WhatsAppInstances[req.query.key]?.instance.qr
+        const instance = WhatsAppInstances[req.query.key]
+        if (!instance) {
+            return res.status(404).send('<h1>Instance not found</h1><p>Please initialize the instance first using /instance/init</p>')
+        }
+        
+        const qrcode = instance.instance.qr || ''
         res.render('qrcode', {
             qrcode: qrcode,
         })
-    } catch {
-        res.json({
-            qrcode: '',
-        })
+    } catch (error) {
+        res.status(500).send(`<h1>Error</h1><p>${error.message}</p>`)
     }
 }
 
 exports.qrbase64 = async (req, res) => {
     try {
-        const qrcode = await WhatsAppInstances[req.query.key]?.instance.qr
+        const instance = WhatsAppInstances[req.query.key]
+        if (!instance) {
+            return res.status(404).json({
+                error: true,
+                message: 'Instance not found',
+                qrcode: ''
+            })
+        }
+        
+        const qrcode = instance.instance.qr || ''
+        
         res.json({
             error: false,
-            message: 'QR Base64 fetched successfully',
+            message: qrcode ? 'QR Base64 fetched successfully' : 'QR Code not generated yet, please wait a few seconds and try again',
             qrcode: qrcode,
         })
-    } catch {
+    } catch (error) {
         res.json({
+            error: true,
+            message: error.message,
             qrcode: '',
         })
     }
@@ -116,11 +132,18 @@ exports.delete = async (req, res) => {
 exports.list = async (req, res) => {
     if (req.query.active) {
         let instance = []
-        const db = mongoClient.db('whatsapp-api')
-        const result = await db.listCollections().toArray()
-        result.forEach((collection) => {
-            instance.push(collection.name)
-        })
+        try {
+            // Usa o mesmo caminho do postgresAuthState
+            const authSessionsDir = process.env.AUTH_DIR || path.join(os.tmpdir(), 'whatsapp_auth')
+            if (fs.existsSync(authSessionsDir)) {
+                const sessionDirs = fs.readdirSync(authSessionsDir, { withFileTypes: true })
+                    .filter(dirent => dirent.isDirectory())
+                    .map(dirent => dirent.name)
+                instance = sessionDirs
+            }
+        } catch (error) {
+            console.error('Error listing sessions:', error)
+        }
 
         return res.json({
             error: false,

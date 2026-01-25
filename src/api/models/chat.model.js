@@ -1,33 +1,51 @@
-const { DataTypes } = require('sequelize')
-const { sequelize } = require('../../config/database')
+const mongoose = require('mongoose')
 
-const Chat = sequelize.define('Chat', {
-    id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
+const chatSchema = new mongoose.Schema({
+    instance_key: {
+        type: String,
+        required: true,
+        index: true
     },
-    key: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
+    chat_id: {
+        type: String,
+        required: true
     },
-    chat: {
-        type: DataTypes.JSON,
-        allowNull: true,
-        defaultValue: [],
+    name: String,
+    is_group: {
+        type: Boolean,
+        default: false
     },
-    createdAt: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
+    participants: [{
+        jid: String,
+        admin: Boolean,
+        name: String
+    }],
+    unread_count: {
+        type: Number,
+        default: 0
     },
-    updatedAt: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
+    last_message_timestamp: {
+        type: Date,
+        index: true
     },
+    archived: {
+        type: Boolean,
+        default: false
+    },
+    pinned: {
+        type: Boolean,
+        default: false
+    },
+    muted: {
+        type: Boolean,
+        default: false
+    },
+    metadata: mongoose.Schema.Types.Mixed
 }, {
-    tableName: 'chats',
-    timestamps: true,
+    timestamps: true
 })
 
-module.exports = Chat
+// Índice único composto
+chatSchema.index({ instance_key: 1, chat_id: 1 }, { unique: true })
+
+module.exports = mongoose.model('Chat', chatSchema)

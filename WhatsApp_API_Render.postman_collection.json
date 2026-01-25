@@ -1,0 +1,748 @@
+{
+	"info": {
+		"_postman_id": "whatsapp-api-render-ew",
+		"name": "WhatsApp API - Render.com",
+		"description": "Collection completa para testar a API WhatsApp hospedada no Render.com\n\n**IMPORTANTE:** Configure a variável `api_token` com o TOKEN configurado no Render.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{api_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Instance",
+			"item": [
+				{
+					"name": "1. Criar Instância (com chave customizada)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/init?key={{instance_key}}&webhook=false",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "init"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}",
+									"description": "Chave customizada da instância"
+								},
+								{
+									"key": "webhook",
+									"value": "false",
+									"description": "Habilitar webhook"
+								}
+							]
+						},
+						"description": "Cria uma nova instância do WhatsApp com chave customizada"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Criar Instância (chave aleatória)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/init",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "init"]
+						},
+						"description": "Cria uma nova instância do WhatsApp com chave aleatória gerada automaticamente"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Ver QR Code (página HTML)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/qr?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "qr"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Abre página HTML com QR Code para escanear no WhatsApp"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Obter QR Code Base64",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/qrbase64?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "qrbase64"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Retorna QR Code em formato Base64"
+					},
+					"response": []
+				},
+				{
+					"name": "5. Obter Info da Instância",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/info?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "info"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Obtém informações da instância (status, conexão, etc)"
+					},
+					"response": []
+				},
+				{
+					"name": "6. Listar Todas as Instâncias",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/list",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "list"]
+						},
+						"description": "Lista todas as instâncias ativas"
+					},
+					"response": []
+				},
+				{
+					"name": "7. Deletar Instância",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/delete?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "delete"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Deleta uma instância específica"
+					},
+					"response": []
+				},
+				{
+					"name": "8. Logout da Instância",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/instance/logout?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["instance", "logout"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Faz logout da instância do WhatsApp"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Messages",
+			"item": [
+				{
+					"name": "1. Enviar Mensagem de Texto",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"message\": \"Olá! Esta é uma mensagem de teste da API WhatsApp 🚀\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/text?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "text"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia mensagem de texto simples"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Enviar Imagem (URL)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"image\": \"https://picsum.photos/800/600\",\n  \"caption\": \"Imagem de teste enviada pela API 📸\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/image?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "image"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia imagem via URL"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Enviar Vídeo (URL)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"video\": \"https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4\",\n  \"caption\": \"Vídeo de teste 🎥\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/video?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "video"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia vídeo via URL"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Enviar Áudio (URL)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"audio\": \"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/audio?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "audio"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia áudio via URL"
+					},
+					"response": []
+				},
+				{
+					"name": "5. Enviar Documento (URL)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"document\": \"https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf\",\n  \"filename\": \"documento-teste.pdf\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/doc?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "doc"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia documento via URL"
+					},
+					"response": []
+				},
+				{
+					"name": "6. Enviar Localização",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"latitude\": \"-23.5505\",\n  \"longitude\": \"-46.6333\",\n  \"name\": \"São Paulo\",\n  \"address\": \"São Paulo, Brasil\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/location?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "location"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia localização geográfica"
+					},
+					"response": []
+				},
+				{
+					"name": "7. Enviar Contato",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"vcard\": \"BEGIN:VCARD\\nVERSION:3.0\\nFN:João Silva\\nTEL;type=CELL;type=VOICE;waid=5511999999999:+55 11 99999-9999\\nEND:VCARD\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/message/contact?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["message", "contact"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Envia contato em formato vCard"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Groups",
+			"item": [
+				{
+					"name": "1. Criar Grupo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Grupo de Teste API\",\n  \"participants\": [\n    \"5511999999999@s.whatsapp.net\",\n    \"5511888888888@s.whatsapp.net\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/create?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "create"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Cria um novo grupo"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Listar Grupos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/group/list?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "list"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Lista todos os grupos"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Adicionar Participante",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{group_id}}\",\n  \"participants\": [\n    \"5511999999999@s.whatsapp.net\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/participants/add?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "participants", "add"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Adiciona participantes ao grupo"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Remover Participante",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{group_id}}\",\n  \"participants\": [\n    \"5511999999999@s.whatsapp.net\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/participants/remove?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "participants", "remove"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Remove participantes do grupo"
+					},
+					"response": []
+				},
+				{
+					"name": "5. Promover a Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{group_id}}\",\n  \"participants\": [\n    \"5511999999999@s.whatsapp.net\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/participants/promote?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "participants", "promote"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Promove participante a administrador"
+					},
+					"response": []
+				},
+				{
+					"name": "6. Rebaixar Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{group_id}}\",\n  \"participants\": [\n    \"5511999999999@s.whatsapp.net\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/participants/demote?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "participants", "demote"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Remove privilégios de administrador"
+					},
+					"response": []
+				},
+				{
+					"name": "7. Atualizar Nome do Grupo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{group_id}}\",\n  \"name\": \"Novo Nome do Grupo\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/update/name?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "update", "name"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Atualiza o nome do grupo"
+					},
+					"response": []
+				},
+				{
+					"name": "8. Sair do Grupo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{group_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/group/leave?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["group", "leave"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Sai do grupo"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Misc",
+			"item": [
+				{
+					"name": "1. Verificar se Número Existe",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/misc/onwhatsapp?key={{instance_key}}&id={{phone_number}}",
+							"host": ["{{base_url}}"],
+							"path": ["misc", "onwhatsapp"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								},
+								{
+									"key": "id",
+									"value": "{{phone_number}}"
+								}
+							]
+						},
+						"description": "Verifica se um número está registrado no WhatsApp"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Obter Foto de Perfil",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/misc/profilepic?key={{instance_key}}&id={{phone_number}}",
+							"host": ["{{base_url}}"],
+							"path": ["misc", "profilepic"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								},
+								{
+									"key": "id",
+									"value": "{{phone_number}}"
+								}
+							]
+						},
+						"description": "Obtém a foto de perfil de um contato"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Obter Status/Bio",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/misc/status?key={{instance_key}}&id={{phone_number}}",
+							"host": ["{{base_url}}"],
+							"path": ["misc", "status"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								},
+								{
+									"key": "id",
+									"value": "{{phone_number}}"
+								}
+							]
+						},
+						"description": "Obtém o status/bio de um contato"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Marcar como Lido",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{phone_number}}\",\n  \"message\": {\n    \"key\": {\n      \"remoteJid\": \"{{phone_number}}\",\n      \"id\": \"MESSAGE_ID_HERE\",\n      \"fromMe\": false\n    }\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/misc/readmessage?key={{instance_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["misc", "readmessage"],
+							"query": [
+								{
+									"key": "key",
+									"value": "{{instance_key}}"
+								}
+							]
+						},
+						"description": "Marca uma mensagem como lida"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://api-whatsapp-ew.onrender.com",
+			"type": "string"
+		},
+		{
+			"key": "api_token",
+			"value": "SEU_TOKEN_AQUI",
+			"type": "string"
+		},
+		{
+			"key": "instance_key",
+			"value": "minha-instancia-teste",
+			"type": "string"
+		},
+		{
+			"key": "phone_number",
+			"value": "5511999999999@s.whatsapp.net",
+			"type": "string"
+		},
+		{
+			"key": "group_id",
+			"value": "120363XXXXXXXXXX@g.us",
+			"type": "string"
+		}
+	]
+}

@@ -12,7 +12,7 @@ const RESTORE_SESSIONS_ON_START_UP = !!(
 
 const APP_URL = process.env.APP_URL || false
 
-const LOG_LEVEL = process.env.LOG_LEVEL
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info'
 
 const INSTANCE_MAX_RETRY_QR = process.env.INSTANCE_MAX_RETRY_QR || 2
 
@@ -20,28 +20,34 @@ const CLIENT_PLATFORM = process.env.CLIENT_PLATFORM || 'Whatsapp MD'
 const CLIENT_BROWSER = process.env.CLIENT_BROWSER || 'Chrome'
 const CLIENT_VERSION = process.env.CLIENT_VERSION || '4.0.0'
 
-// Enable or disable PostgreSQL
-const POSTGRES_ENABLED = !!(
-    process.env.POSTGRES_ENABLED && process.env.POSTGRES_ENABLED === 'true'
+// Enable or disable MongoDB
+const MONGODB_ENABLED = !!(
+    process.env.MONGODB_ENABLED && process.env.MONGODB_ENABLED === 'true'
 )
-// PostgreSQL Configuration
-const POSTGRES_HOST = process.env.POSTGRES_HOST || 'localhost'
-const POSTGRES_PORT = process.env.POSTGRES_PORT || 5432
-const POSTGRES_DB = process.env.POSTGRES_DB || 'whatsapp_api'
-const POSTGRES_USER = process.env.POSTGRES_USER || 'postgres'
-const POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || 'postgres'
+
+// MongoDB Configuration
+const MONGODB_URI =
+    process.env.MONGODB_URI ||
+    process.env.DATABASE_URL ||
+    'mongodb://localhost:27017/whatsapp'
+
 // Enable or disable webhook globally on project
 const WEBHOOK_ENABLED = !!(
     process.env.WEBHOOK_ENABLED && process.env.WEBHOOK_ENABLED === 'true'
 )
+
 // Webhook URL
 const WEBHOOK_URL = process.env.WEBHOOK_URL
+
 // Receive message content in webhook (Base64 format)
 const WEBHOOK_BASE64 = !!(
     process.env.WEBHOOK_BASE64 && process.env.WEBHOOK_BASE64 === 'true'
 )
+
 // allowed events which should be sent to webhook
-const WEBHOOK_ALLOWED_EVENTS = process.env.WEBHOOK_ALLOWED_EVENTS?.split(',') || ['all']
+const WEBHOOK_ALLOWED_EVENTS =
+    process.env.WEBHOOK_ALLOWED_EVENTS?.split(',') || ['all']
+
 // Mark messages as seen
 const MARK_MESSAGES_READ = !!(
     process.env.MARK_MESSAGES_READ && process.env.MARK_MESSAGES_READ === 'true'
@@ -58,13 +64,9 @@ module.exports = {
     instance: {
         maxRetryQr: INSTANCE_MAX_RETRY_QR,
     },
-    postgres: {
-        enabled: POSTGRES_ENABLED,
-        host: POSTGRES_HOST,
-        port: POSTGRES_PORT,
-        database: POSTGRES_DB,
-        user: POSTGRES_USER,
-        password: POSTGRES_PASSWORD,
+    mongodb: {
+        enabled: MONGODB_ENABLED,
+        uri: MONGODB_URI,
     },
     browser: {
         platform: CLIENT_PLATFORM,
@@ -77,5 +79,5 @@ module.exports = {
     protectRoutes: PROTECT_ROUTES,
     markMessagesRead: MARK_MESSAGES_READ,
     webhookAllowedEvents: WEBHOOK_ALLOWED_EVENTS,
-    postgresEnabled: POSTGRES_ENABLED,
+    mongodbEnabled: MONGODB_ENABLED,
 }

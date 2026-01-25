@@ -10,17 +10,22 @@ const { v4: uuidv4 } = require('uuid')
 const path = require('path')
 const processButton = require('../helper/processbtn')
 const generateVC = require('../helper/genVc')
-const Chat = require('../models/chat.model')
 const axios = require('axios')
 const config = require('../../config/config')
 const downloadMessage = require('../helper/downloadMsg')
 const logger = require('pino')()
+const WebhookService = require('../services/webhook.service')
 const useMongoDBAuthState = require('../helper/mongoAuthState')
+const connectToCluster = require('../helper/connectMongoClient')
+const Message = require('../models/message.model')
+const LidMapping = require('../models/lidmapping.model')
+const Chat = require('../models/chat.model')
+const Contact = require('../models/contact.model')
 
 class WhatsAppInstance {
     socketConfig = {
         defaultQueryTimeoutMs: undefined,
-        printQRInTerminal: false,
+        printQRInTerminal: true,
         logger: pino({
             level: config.log.level,
         }),
@@ -36,6 +41,7 @@ class WhatsAppInstance {
         qr: '',
         messages: [],
         qrRetry: 0,
+        reconnectAttempts: 0,
         customWebhook: '',
     }
 
@@ -45,6 +51,7 @@ class WhatsAppInstance {
 
     constructor(key, allowWebhook, webhook) {
         this.key = key ? key : uuidv4()
+        this.instance.key = this.key  // Atualizar instance.key após definir this.key
         this.instance.customWebhook = this.webhook ? this.webhook : webhook
         this.allowWebhook = config.webhookEnabled
             ? config.webhookEnabled
@@ -70,8 +77,35 @@ class WhatsAppInstance {
     }
 
     async init() {
-        this.collection = mongoClient.db('whatsapp-api').collection(this.key)
-        const { state, saveCreds } = await useMongoDBAuthState(this.collection)
+        let state, saveCreds
+        
+        if (config.mongodb && config.mongodb.enabled) {
+            try {
+                const mongoClient = await connectToCluster(config.mongodb.uri)
+                const collection = mongoClient
+                    .db('whatsapp')
+                    .collection('auth_info_baileys')
+                const { state: mongoState, saveCreds: mongoSaveCreds } = await useMongoDBAuthState(collection, this.key)
+                state = mongoState
+                saveCreds = mongoSaveCreds
+            } catch (error) {
+                logger.error('Failed to initialize MongoDB auth state:', error.message)
+                // Fallback to memory-only auth state
+                const { useMultiFileAuthState } = require('@whiskeysockets/baileys')
+                const authPath = path.join(__dirname, '../sessiondata', `session_${this.key}`)
+                const { state: fileState, saveCreds: fileSaveCreds } = await useMultiFileAuthState(authPath)
+                state = fileState
+                saveCreds = fileSaveCreds
+            }
+        } else {
+            // Use file-based auth state when MongoDB is disabled
+            const { useMultiFileAuthState } = require('@whiskeysockets/baileys')
+            const authPath = path.join(__dirname, '../sessiondata', `session_${this.key}`)
+            const { state: fileState, saveCreds: fileSaveCreds } = await useMultiFileAuthState(authPath)
+            state = fileState
+            saveCreds = fileSaveCreds
+        }
+        
         this.authState = { state: state, saveCreds: saveCreds }
         this.socketConfig.auth = this.authState.state
         this.socketConfig.browser = Object.values(config.browser)
@@ -88,20 +122,61 @@ class WhatsAppInstance {
         // on socket closed, opened, connecting
         sock?.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect, qr } = update
+            
+            logger.info(`[${this.key}] connection.update event:`, {
+                connection,
+                hasQr: !!qr,
+                hasLastDisconnect: !!lastDisconnect
+            })
 
             if (connection === 'connecting') return
 
             if (connection === 'close') {
-                // reconnect if not logged out
-                if (
-                    lastDisconnect?.error?.output?.statusCode !==
-                    DisconnectReason.loggedOut
-                ) {
+                const statusCode = lastDisconnect?.error?.output?.statusCode
+                const shouldReconnect = statusCode !== DisconnectReason.loggedOut
+                
+                logger.info(`Connection closed for instance ${this.key}, statusCode: ${statusCode}, shouldReconnect: ${shouldReconnect}`)
+                
+                // Limitar tentativas de reconexão para evitar loop infinito
+                if (!this.instance.reconnectAttempts) {
+                    this.instance.reconnectAttempts = 0
+                }
+                
+                // reconnect if not logged out and not exceeded max attempts
+                if (shouldReconnect && this.instance.reconnectAttempts < 3) {
+                    this.instance.reconnectAttempts++
+                    logger.info(`Reconnecting instance ${this.key}, attempt ${this.instance.reconnectAttempts}/3`)
+                    
+                    // Aguardar antes de reconectar
+                    await new Promise(resolve => setTimeout(resolve, 2000))
                     await this.init()
+                } else if (this.instance.reconnectAttempts >= 3) {
+                    logger.error(`Max reconnection attempts reached for instance ${this.key}, stopping`)
+                    logger.info(`Cleaning corrupted auth files for instance ${this.key}`)
+                    
+                    // Limpar arquivos de autenticação corrompidos
+                    try {
+                        const fs = require('fs')
+                        const os = require('os')
+                        const baseDir = process.env.AUTH_DIR || path.join(os.tmpdir(), 'whatsapp_auth')
+                        const authDir = path.join(baseDir, this.key)
+                        
+                        if (fs.existsSync(authDir)) {
+                            fs.rmSync(authDir, { recursive: true, force: true })
+                            logger.info(`Corrupted auth directory deleted for instance ${this.key}`)
+                        }
+                    } catch (e) {
+                        logger.error(`Error deleting corrupted auth directory: ${e.message}`)
+                    }
+                    
+                    this.instance.online = false
+                    this.instance.qr = ''
                 } else {
-                    await this.collection.drop().then((r) => {
-                        logger.info('STATE: Droped collection')
-                    })
+                    if (this.collection) {
+                        await this.collection.drop().then((r) => {
+                            logger.info('STATE: Droped collection')
+                        })
+                    }
                     this.instance.online = false
                 }
 
@@ -121,15 +196,6 @@ class WhatsAppInstance {
                         this.key
                     )
             } else if (connection === 'open') {
-                if (config.mongoose.enabled) {
-                    let alreadyThere = await Chat.findOne({
-                        key: this.key,
-                    }).exec()
-                    if (!alreadyThere) {
-                        const saveChat = new Chat({ key: this.key })
-                        await saveChat.save()
-                    }
-                }
                 this.instance.online = true
                 if (
                     [
@@ -149,9 +215,15 @@ class WhatsAppInstance {
             }
 
             if (qr) {
+                logger.info(`QR Code received for instance ${this.key}, length: ${qr.length}`)
+                logger.info(`QR Code raw data (first 50 chars): ${qr.substring(0, 50)}...`)
+                
                 QRCode.toDataURL(qr).then((url) => {
                     this.instance.qr = url
                     this.instance.qrRetry++
+                    logger.info(`QR Code converted to Base64 successfully for instance ${this.key}`)
+                    logger.info(`Base64 length: ${url.length}, retry count: ${this.instance.qrRetry}`)
+                    
                     if (this.instance.qrRetry >= config.instance.maxRetryQr) {
                         // close WebSocket connection
                         this.instance.sock.ws.close()
@@ -160,7 +232,12 @@ class WhatsAppInstance {
                         this.instance.qr = ' '
                         logger.info('socket connection terminated')
                     }
+                }).catch((error) => {
+                    logger.error(`Error generating QR Code: ${error.message}`)
+                    logger.error(`Error stack: ${error.stack}`)
                 })
+            } else {
+                logger.info(`connection.update event fired but no QR code present. Connection: ${connection}`)
             }
         })
 
@@ -186,12 +263,32 @@ class WhatsAppInstance {
             this.instance.chats.push(...recivedChats)
             await this.updateDb(this.instance.chats)
             await this.updateDbGroupsParticipants()
+            
+            // Salva todos os chats no MongoDB (sincronização inicial)
+            logger.info(`Syncing ${chats.length} chats to MongoDB...`)
+            for (const chat of chats) {
+                await Chat.findOneAndUpdate(
+                    { instance_key: this.key, chat_id: chat.id },
+                    {
+                        instance_key: this.key,
+                        chat_id: chat.id,
+                        name: chat.name,
+                        is_group: chat.id.endsWith('@g.us'),
+                        unread_count: chat.unreadCount || 0,
+                        last_message_timestamp: chat.conversationTimestamp ? new Date(chat.conversationTimestamp * 1000) : null,
+                        archived: chat.archived || false,
+                        pinned: chat.pinned || false,
+                        muted: chat.mute ? true : false,
+                        metadata: chat
+                    },
+                    { upsert: true }
+                ).catch(err => logger.error('Error syncing chat:', err))
+            }
+            logger.info(`✅ ${chats.length} chats synced to MongoDB`)
         })
 
         // on recive new chat
-        sock?.ev.on('chats.upsert', (newChat) => {
-            //console.log('chats.upsert')
-            //console.log(newChat)
+        sock?.ev.on('chats.upsert', async (newChat) => {
             const chats = newChat.map((chat) => {
                 return {
                     ...chat,
@@ -199,6 +296,61 @@ class WhatsAppInstance {
                 }
             })
             this.instance.chats.push(...chats)
+            
+            // Salva chats no MongoDB
+            for (const chat of newChat) {
+                await Chat.findOneAndUpdate(
+                    { instance_key: this.key, chat_id: chat.id },
+                    {
+                        instance_key: this.key,
+                        chat_id: chat.id,
+                        name: chat.name,
+                        is_group: chat.id.endsWith('@g.us'),
+                        unread_count: chat.unreadCount || 0,
+                        archived: chat.archived || false,
+                        pinned: chat.pinned || false,
+                        metadata: chat
+                    },
+                    { upsert: true }
+                ).catch(err => logger.error('Error saving chat:', err))
+            }
+        })
+
+        // on contacts upsert
+        sock?.ev.on('contacts.upsert', async (contacts) => {
+            logger.info(`Syncing ${contacts.length} contacts to MongoDB...`)
+            for (const contact of contacts) {
+                await Contact.findOneAndUpdate(
+                    { instance_key: this.key, contact_id: contact.id },
+                    {
+                        instance_key: this.key,
+                        contact_id: contact.id,
+                        name: contact.name,
+                        notify: contact.notify,
+                        verified_name: contact.verifiedName,
+                        img_url: contact.imgUrl,
+                        status: contact.status
+                    },
+                    { upsert: true }
+                ).catch(err => logger.error('Error saving contact:', err))
+            }
+            logger.info(`✅ ${contacts.length} contacts synced to MongoDB`)
+        })
+        
+        // on contacts update
+        sock?.ev.on('contacts.update', async (contacts) => {
+            for (const contact of contacts) {
+                await Contact.findOneAndUpdate(
+                    { instance_key: this.key, contact_id: contact.id },
+                    {
+                        name: contact.name,
+                        notify: contact.notify,
+                        verified_name: contact.verifiedName,
+                        img_url: contact.imgUrl,
+                        status: contact.status
+                    }
+                ).catch(err => logger.error('Error updating contact:', err))
+            }
         })
 
         // on chat change
@@ -263,8 +415,87 @@ class WhatsAppInstance {
                 )
                     return
 
+                // Extrair LID e número real para mapeamento
+                let lid = null
+                let phoneNumber = null
+                
+                // Tentar extrair LID do participant
+                if (msg.key.participant) {
+                    const match = msg.key.participant.match(/lid:(\d+)@/)
+                    if (match) {
+                        lid = match[1]
+                        phoneNumber = msg.pushName || msg.key.participant.split('@')[0]
+                    } else {
+                        phoneNumber = msg.key.participant.split('@')[0]
+                    }
+                }
+                
+                // Tentar extrair LID do remoteJid (mensagens diretas)
+                if (msg.key.remoteJid) {
+                    const remoteJidClean = msg.key.remoteJid.split('@')[0]
+                    
+                    // Verificar se é LID (apenas números, sem 55)
+                    if (remoteJidClean.length > 11 && !remoteJidClean.startsWith('55')) {
+                        lid = remoteJidClean
+                        // Buscar número real no LidMapping
+                        const mapping = await LidMapping.findOne({ 
+                            instance_key: this.key, 
+                            lid: lid 
+                        }).catch(err => null)
+                        
+                        if (mapping) {
+                            phoneNumber = mapping.phone_number
+                        } else {
+                            // Usar pushName como fallback
+                            phoneNumber = msg.pushName || remoteJidClean
+                        }
+                    } else {
+                        // Número normal
+                        phoneNumber = remoteJidClean
+                    }
+                }
+                
+                // Salvar mapeamento LID → número se LID existir
+                if (lid && phoneNumber) {
+                    await LidMapping.findOneAndUpdate(
+                        { instance_key: this.key, lid: lid },
+                        { 
+                            instance_key: this.key,
+                            lid: lid,
+                            phone_number: phoneNumber,
+                            last_seen: new Date()
+                        },
+                        { upsert: true }
+                    ).catch(err => logger.error('Error saving LID mapping:', err))
+                }
+
+                // Salva mensagem no MongoDB
+                const savedMessage = await Message.findOneAndUpdate(
+                    { 
+                        instance_key: this.key,
+                        message_id: msg.key.id
+                    },
+                    {
+                        instance_key: this.key,
+                        message_id: msg.key.id,
+                        remote_jid: msg.key.remoteJid,
+                        from_me: msg.key.fromMe || false,
+                        participant: msg.key.participant,
+                        lid: lid,
+                        phone_number: phoneNumber,
+                        message_type: messageType,
+                        message_content: msg.message,
+                        message_timestamp: new Date(parseInt(msg.messageTimestamp) * 1000),
+                        status: 'SENT',
+                        raw_data: msg
+                    },
+                    { upsert: true, new: true }
+                ).catch(err => logger.error('Error saving message:', err))
+
                 const webhookData = {
                     key: this.key,
+                    phone_number: phoneNumber,
+                    lid: lid,
                     ...msg,
                 }
 
@@ -296,12 +527,22 @@ class WhatsAppInstance {
                             break
                     }
                 }
+                // Envia para webhook (sistema antigo)
                 if (
                     ['all', 'messages', 'messages.upsert'].some((e) =>
                         config.webhookAllowedEvents.includes(e)
                     )
                 )
                     await this.SendWebhook('message', webhookData, this.key)
+                
+                // Envia para webhook (sistema novo com MongoDB)
+                const webhookSent = await WebhookService.sendWebhook(this.key, 'messages_upsert', webhookData)
+                if (webhookSent && savedMessage) {
+                    await Message.updateOne(
+                        { _id: savedMessage._id },
+                        { webhook_sent: true, webhook_sent_at: new Date() }
+                    ).catch(err => logger.error('Error updating webhook_sent:', err))
+                }
             })
         })
 
@@ -417,9 +658,47 @@ class WhatsAppInstance {
 
     async deleteInstance(key) {
         try {
-            await Chat.findOneAndDelete({ key: key })
+            logger.info(`Deleting instance ${key}`)
+            
+            // MongoDB cleanup - deletar autenticação do banco
+            if (config.mongodb && config.mongodb.enabled) {
+                try {
+                    const mongoClient = await connectToCluster(config.mongodb.uri)
+                    const collection = mongoClient.db('whatsapp').collection('auth_info_baileys')
+                    const result = await collection.deleteMany({ _id: { $regex: `^${key}:` } })
+                    logger.info(`Deleted ${result.deletedCount} auth documents from MongoDB for instance ${key}`)
+                } catch (mongoError) {
+                    logger.error(`Error deleting MongoDB auth for instance ${key}:`, mongoError.message)
+                }
+            }
         } catch (e) {
-            logger.error('Error updating document failed')
+            logger.error('Error deleting instance:', e.message)
+        }
+        
+        try {
+            // Limpar arquivos de autenticação
+            const fs = require('fs')
+            const os = require('os')
+            const baseDir = process.env.AUTH_DIR || path.join(os.tmpdir(), 'whatsapp_auth')
+            const authDir = path.join(baseDir, key)
+            
+            if (fs.existsSync(authDir)) {
+                fs.rmSync(authDir, { recursive: true, force: true })
+                logger.info(`Auth directory deleted for instance ${key}`)
+            }
+        } catch (e) {
+            logger.error('Error deleting auth directory:', e.message)
+        }
+        
+        try {
+            // Fechar socket se existir
+            if (this.instance?.sock) {
+                this.instance.sock.ev.removeAllListeners()
+                this.instance.sock.ws.close()
+                logger.info(`Socket closed for instance ${key}`)
+            }
+        } catch (e) {
+            logger.error('Error closing socket:', e.message)
         }
     }
 
@@ -764,11 +1043,9 @@ class WhatsAppInstance {
         }
     }
 
-    // get Chat object from db
+    // get Chat object from instance
     async getChat(key = this.key) {
-        let dbResult = await Chat.findOne({ key: key }).exec()
-        let ChatObj = dbResult.chat
-        return ChatObj
+        return this.instance.chats
     }
 
     // create new group by application
@@ -960,12 +1237,12 @@ class WhatsAppInstance {
         }
     }
 
-    // update db document -> chat
+    // update instance chats
     async updateDb(object) {
         try {
-            await Chat.updateOne({ key: this.key }, { chat: object })
+            this.instance.chats = object
         } catch (e) {
-            logger.error('Error updating document failed')
+            logger.error('Error updating chats failed')
         }
     }
 
